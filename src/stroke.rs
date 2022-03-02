@@ -105,7 +105,8 @@ impl Stroke {
         }
 
         if (result & NUM.0) != 0 && must_not_num {
-            bail!("Stroke has # and inappropriate character");
+            println!("Warning stroke: {:?}", text);
+            // bail!("Stroke has # and inappropriate character");
         }
         Ok(Stroke(result))
     }

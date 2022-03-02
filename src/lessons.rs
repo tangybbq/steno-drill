@@ -64,14 +64,15 @@ impl Entry {
 
         let word = fields[0];
         if word.len() < 2 || !word.starts_with('\'') || !word.ends_with('\'') {
-            bail!("Looks like entry, but word does not surrounded by ''");
+            // If the extra data has a colon in it, it will trigger this.
+            println!("warning: {}: {}", word, fields[1]);
+            return Ok(None)
+            // bail!("Looks like entry, but word is not surrounded by ''");
         }
         let word = &word[1..word.len() - 1];
         let word = word.to_string();
 
         let steno = StenoPhrase::parse(fields[1])?;
-
-        println!("Entry: {:?} {}", word, steno);
 
         Ok(Some(Entry { word, steno }))
     }

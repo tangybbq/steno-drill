@@ -2,9 +2,7 @@
 
 use anyhow::Result;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-// use std::{
-//     // io::{self, Write},
-// };
+use crate::db::Db;
 use crate::input::StrokeReader;
 use crate::{lessons::Lesson, stroke::Diagrammer};
 use structopt::StructOpt;
@@ -23,12 +21,46 @@ enum Command {
     #[structopt(name = "import")]
     /// Import wordlists to be learned.
     Import(ImportCommand),
+
+    #[structopt(name = "init")]
+    /// Initialize a new learning database
+    Init(InitCommand),
+
+    #[structopt(name = "info")]
+    /// Return information about lesson progress
+    Info(InfoCommand),
 }
 
 #[derive(Debug, StructOpt)]
 struct ImportCommand {
+    #[structopt(long = "db")]
+    /// The pathname of the learning database
+    file: String,
+
     #[structopt(name = "FILE")]
     files: Vec<String>,
+}
+
+#[derive(Debug, StructOpt)]
+struct InitCommand {
+    #[structopt(long = "db")]
+    /// The pathname of the learning database
+    file: String,
+}
+
+#[derive(Debug, StructOpt)]
+struct InfoCommand {
+    #[structopt(long = "db")]
+    /// The pathname of the learning database
+    file: String,
+
+    #[structopt(long = "seen")]
+    /// Only show seen entries.
+    seen: bool,
+
+    #[structopt(long = "unseen")]
+    /// Only show unseen entries
+    unseen: bool,
 }
 
 #[derive(Debug, StructOpt)]
@@ -57,7 +89,7 @@ impl Drop for RawMode {
 
 fn main() -> Result<()> {
     let opt = Opt::from_args();
-    println!("command: {:?}", opt);
+    // println!("command: {:?}", opt);
     // let mut stdout = io::stdout();
 
     match opt.command {
@@ -73,12 +105,25 @@ fn main() -> Result<()> {
 
             learn()?;
         }
-        Command::Import(names) => {
-            for name in names.files {
+        Command::Import(args) => {
+            let mut db = Db::open(&args.file)?;
+
+            for name in args.files {
                 println!("import: {}", name);
                 let lesson = Lesson::load(name)?;
-                println!("lesson: {:#?}", lesson);
+                // println!("lesson: {:#?}", lesson);
+                db.load(&lesson)?;
             }
+        }
+
+        Command::Init(args) => {
+            println!("Initializing database at: {:?}", args.file);
+            Db::init(&args.file)?;
+        }
+
+        Command::Info(args) => {
+            let mut db = Db::open(&args.file)?;
+            db.info(args.seen, args.unseen)?;
         }
     }
 
