@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 crossterm = "0.23"
+rusqlite = "0.27"
 structopt = "0.3"

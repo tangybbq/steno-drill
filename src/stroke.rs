@@ -20,9 +20,17 @@ use std::{
     fmt,
 };
 
-// The stroke itself is just a 32 bit number.
-#[derive(Copy, Clone, Eq, PartialEq)]
+/// The stroke itself is just a 32 bit number.  It represents a single stroke on the machine.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Stroke(u32);
+
+/// A steno word is a group of strokes that are represented separated by slashes.
+#[derive(Debug)]
+pub struct StenoWord(pub Vec<Stroke>);
+
+/// A steno phrase is a group of words.
+#[derive(Debug)]
+pub struct StenoPhrase(pub Vec<StenoWord>);
 
 static NORMAL: &str = "STKPWHRAO*EUFRPBLGTSDZ";
 static NUMS: &str   = "12K3W4R50*EU6R7B8G9SDZ";
@@ -239,5 +247,50 @@ fn stroke_roundtrip() {
             println!("Mismatch: 0x{:x} -> {} -> 0x{:x}", ch, text, orig.0);
         }
         assert_eq!(ch, orig.0);
+    }
+}
+
+impl StenoPhrase {
+    pub fn parse(text: &str) -> Result<StenoPhrase> {
+        let words: Result<Vec<_>> = text.split(' ').map(|w| StenoWord::parse(w)).collect();
+        Ok(StenoPhrase(words?))
+    }
+}
+
+impl StenoWord {
+    pub fn parse(text: &str) -> Result<StenoWord> {
+        let strokes: Result<Vec<_>> = text.split('/').map(|w| Stroke::from_text(w)).collect();
+        Ok(StenoWord(strokes?))
+    }
+}
+
+// Display is the same as was parsed, words separated by space, strokes separated by slashes.
+impl fmt::Display for StenoPhrase {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut sep = false;
+        for word in &self.0 {
+            if sep {
+                write!(f, " ")?;
+            }
+            sep = true;
+
+            write!(f, "{}", word)?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Display for StenoWord {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut sep = false;
+        for stroke in &self.0 {
+            if sep {
+                write!(f, "/")?;
+            }
+            sep = true;
+
+            write!(f, "{}", stroke)?;
+        }
+        Ok(())
     }
 }

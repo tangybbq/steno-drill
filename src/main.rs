@@ -9,11 +9,16 @@ use crossterm::{
 // };
 use structopt::StructOpt;
 use crate::input::StrokeReader;
-use crate::stroke::{
-    Diagrammer,
+use crate::{
+    lessons::Lesson,
+    stroke::{
+        Diagrammer,
+    },
 };
 
+mod db;
 mod input;
+mod lessons;
 mod stroke;
 
 #[derive(Debug, StructOpt)]
@@ -24,7 +29,13 @@ enum Command {
 
     #[structopt(name = "import")]
     /// Import wordlists to be learned.
-    Import,
+    Import(ImportCommand),
+}
+
+#[derive(Debug, StructOpt)]
+struct ImportCommand {
+    #[structopt(name = "FILE")]
+    files: Vec<String>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -69,8 +80,12 @@ fn main() -> Result<()> {
 
             learn()?;
         },
-        Command::Import => {
-            println!("TODO: Import\r");
+        Command::Import(names) => {
+            for name in names.files {
+                println!("import: {}", name);
+                let lesson = Lesson::load(name)?;
+                println!("lesson: {:#?}", lesson);
+            }
         },
     }
 
