@@ -1,9 +1,11 @@
 //! Learning database operations.
 
 use crate::Lesson;
+use crate::stroke::StenoPhrase;
 use anyhow::{bail, Result};
 use rusqlite::{named_params, Connection};
 use std::path::Path;
+use std::time::SystemTime;
 
 /// The schema version that matches this code.  May be usable in the future for automatic upgrades.
 static SCHEMA_VERSION: &'static str = "2022-03-02a";
@@ -125,6 +127,94 @@ impl Db {
 
         Ok(())
     }
+
+    /// Query some words that need to be learned, returning up to count of them.
+    pub fn get_drills(&mut self, count: usize) -> Result<Vec<Work>> {
+        let now = get_now();
+        let mut result = vec![];
+
+        let mut stmt = self.conn.prepare("
+            SELECT word, steno, goods, interval, next
+            FROM learn
+            WHERE next < :now
+            LIMIT :limit")?;
+        for row in stmt.query_map(named_params!{
+            ":now": now,
+            ":limit": count,
+        }, |row| {
+            let steno: String = row.get(1)?;
+            Ok(Work {
+                text: row.get(0)?,
+                strokes: StenoPhrase::parse(&steno).unwrap(),
+                goods: row.get(2)?,
+                interval: row.get(3)?,
+                next: row.get(4)?,
+            })})?
+        {
+            result.push(row?);
+        }
+
+        Ok(result)
+    }
+
+    /// Update the given work in the database.  `corrections` is the number of corrections the user
+    /// had to make to write this.  For now, we consider 0 a success and will increase the good
+    /// count and interval.
+    pub fn update(&mut self, work: &Work, corrections: usize) -> Result<()> {
+        let goods = if corrections == 0 { work.goods + 1 } else { work.goods };
+        let interval = if corrections == 0 {
+            work.interval * 1.5
+        } else {
+            5.0
+        };
+        let next = get_now() + interval;
+
+        let tx = self.conn.transaction()?;
+        tx.execute("
+            UPDATE learn
+            SET goods = :goods,
+                interval = :interval,
+                next = :next
+            WHERE word = :word",
+            named_params!{
+                ":goods": goods,
+                ":interval": interval,
+                ":next": next,
+                ":word": &work.text,
+            })?;
+        tx.commit()?;
+        Ok(())
+    }
+}
+
+/// Steno can be made as "Work" which is a linear sequence of strokes, and pieces of text that go
+/// with each stroke.  For multiple stroke words, only the last stroke will include the text.  This
+/// is similar to real behavior, but without the false words showing up first and then being
+/// deleted.
+#[derive(Debug)]
+pub struct Work {
+    pub text: String,
+    pub strokes: StenoPhrase,
+    pub goods: usize,
+    pub interval: f64,
+    pub next: f64,
+    // pub items: Vec<WorkItem>,
+}
+
+// #[derive(Debug)]
+// pub struct WorkItem {
+//     pub text: String,
+//     pub stroke: Stroke,
+// }
+
+// To simplify things a bit, we represent time as a floating point number of seconds since the Unix
+// Epoch.  Get that time as a floating point value.  f64 up until 2037 gives 11 bits of precision
+// left for sub-seconds.  We really only need a few bits of precision beyond seconds (even seconds
+// would probably be fine).
+fn get_now() -> f64 {
+    let dur = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+
+    dur.as_secs() as f64 + (dur.subsec_millis() as f64 / 1000.0)
 }
 
 struct InfoResult {

@@ -12,6 +12,9 @@
 //! The number bar can be textually represented by the '#' if needed to disambiguate.  If there are
 //! any number row characters present, the '#' is not needed.
 
+// Until everything is used.
+#![allow(dead_code)]
+
 use anyhow::{bail, Result};
 use std::fmt;
 
@@ -38,7 +41,7 @@ static MID: Stroke = Stroke(0x007c00);
 static RIGHT: Stroke = Stroke(0x0003ff);
 static NUM: Stroke = Stroke(0x400000);
 static DIGITS: Stroke = Stroke(0x3562a8);
-// static STAR: Stroke = Stroke(0x001000);
+static STAR: Stroke = Stroke(0x001000);
 
 impl Stroke {
     pub fn from_text(text: &str) -> Result<Stroke> {
@@ -138,6 +141,11 @@ impl Stroke {
         }
 
         buf.to_string()
+    }
+
+    /// Is this stroke the star?
+    pub fn is_star(self) -> bool {
+        self.has_any(STAR)
     }
 }
 
@@ -260,6 +268,16 @@ impl StenoPhrase {
     pub fn parse(text: &str) -> Result<StenoPhrase> {
         let words: Result<Vec<_>> = text.split(' ').map(|w| StenoWord::parse(w)).collect();
         Ok(StenoPhrase(words?))
+    }
+
+    pub fn linear(&self) -> Vec<Stroke> {
+        let mut result = vec![];
+        for w in &self.0 {
+            for st in &w.0 {
+                result.push(*st);
+            }
+        }
+        result
     }
 }
 

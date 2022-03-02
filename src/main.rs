@@ -2,9 +2,10 @@
 
 use anyhow::Result;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use crate::db::Db;
+use crate::db::{Db, Work};
 use crate::input::StrokeReader;
-use crate::{lessons::Lesson, stroke::Diagrammer};
+use crate::lessons::Lesson;
+use std::io::Write;
 use structopt::StructOpt;
 
 mod db;
@@ -16,7 +17,7 @@ mod stroke;
 enum Command {
     #[structopt(name = "learn")]
     /// Learn and reinforce vocabulary.
-    Learn,
+    Learn(LearnCommand),
 
     #[structopt(name = "import")]
     /// Import wordlists to be learned.
@@ -64,6 +65,17 @@ struct InfoCommand {
 }
 
 #[derive(Debug, StructOpt)]
+struct LearnCommand {
+    #[structopt(long = "db")]
+    /// The pathname of the learning database.
+    file: String,
+
+    #[structopt(long = "new")]
+    /// A lesson to pull new words from
+    new: Option<usize>,
+}
+
+#[derive(Debug, StructOpt)]
 #[structopt(name = "sdrill", about = "Steno drilling util")]
 struct Opt {
     #[structopt(subcommand)]
@@ -93,17 +105,14 @@ fn main() -> Result<()> {
     // let mut stdout = io::stdout();
 
     match opt.command {
-        Command::Learn => {
+        Command::Learn(args) => {
+            let mut db = Db::open(&args.file)?;
             let _raw = RawMode::new()?;
 
             println!("Be sure Plover is configured to raw steno (no dict) and space after\r");
             println!("Press <Esc> to exit\r\n");
-            // crossterm::execute!(
-            //     stdout,
-            //     enable_raw_mode(),
-            // )?;
 
-            learn()?;
+            learn(&mut db)?;
         }
         Command::Import(args) => {
             let mut db = Db::open(&args.file)?;
@@ -131,16 +140,87 @@ fn main() -> Result<()> {
 }
 
 // Learn.
-fn learn() -> Result<()> {
-    let diag = Diagrammer::new();
+fn learn(db: &mut Db) -> Result<()> {
+    // let diag = Diagrammer::new();
     let mut reader = StrokeReader::new();
 
-    while let Some(stroke) = reader.read_stroke()? {
-        println!("read: |{}|  {}\r", stroke.to_tape(), stroke);
-        for row in diag.to_diagram(stroke) {
-            println!("  > {}\r", row);
+    loop {
+        let words = db.get_drills(5)?;
+
+        if words.is_empty() {
+            println!("No more words left to learn.\r");
+            break;
+        }
+
+        let (head, rest) = words.split_at(1);
+        if head.len() < 1 {
+            println!("TODO: Learn new words\r");
+            return Ok(());
+        }
+        let head = &head[0];
+
+        match learn_one(&mut reader, &head, rest)? {
+            None => break,
+            Some(count) => {
+                db.update(&head, count)?;
+            }
         }
     }
 
     Ok(())
+}
+
+// Quiz on a single word (with some context).  The value returned is the number of corrections
+// needed.  A "None" return means the user wishes to exit.
+fn learn_one(reader: &mut StrokeReader, work: &Work, rest: &[Work]) -> Result<Option<usize>> {
+    let mut stdout = std::io::stdout();
+    print!("Write: {}", work.text);
+
+    let mut corrected = 0;
+    let expect = work.strokes.linear();
+    let mut sofar = vec![];
+
+    for r in rest {
+        print!(" {}", r.text);
+    }
+    println!("\r\n");
+    loop {
+        stdout.flush()?;
+
+        let stroke = if let Some(stroke) = reader.read_stroke()? {
+            stroke
+        } else {
+            println!("\r\n\nEarly exit\r");
+            return Ok(None);
+        };
+        print!("--> ");
+
+        if stroke.is_star() {
+            let _ = sofar.pop();
+            corrected += 1;
+        } else {
+            sofar.push(stroke);
+        }
+
+        let mut failed = false;
+
+        for (pos, &st) in sofar.iter().enumerate() {
+            print!("/");
+            if pos >= expect.len() || expect[pos] != st {
+                failed = true;
+                print!("%");
+            }
+            print!("{}", st);
+        }
+        println!("\r");
+
+        if failed {
+            println!("  Should be: {}\r", work.strokes);
+        }
+
+        if sofar.len() == expect.len() && !failed {
+            println!("Correct! {}\r", corrected);
+            return Ok(Some(corrected));
+        }
+    }
 }

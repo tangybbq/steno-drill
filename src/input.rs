@@ -61,7 +61,7 @@ impl StrokeReader {
                             1 => {
                                 // Word boundary, return the deletion up, and leave the stroke
                                 // popped.
-                                println!("Return *\r");
+                                // println!("Return *\r");
                                 return Ok(Some(Stroke::from_text("*")?));
                             }
                             n => {
