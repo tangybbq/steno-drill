@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
+crossterm = "0.23"
+structopt = "0.3"
