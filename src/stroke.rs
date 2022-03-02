@@ -135,15 +135,71 @@ impl Stroke {
 
         buf.to_string()
     }
+}
 
-    // /// Return the stroke as a diagram of the steno machine.
-    // #[allow(dead_code)]
-    // pub fn to_picture(self) -> Vec<String> {
-    //     let mut result = vec![];
-    //     let mut line = String::new();
+// A builder that can generate stroke diagrams.
+// ___________#_____________
+// │S│T│P│H│ │*│ │F│P│L│T│D│
+// │S│K│W│R│ │*│ │R│B│G│S│Z│
+// ╰─┴─┴─┴─╯ ╰─╯ ╰─┴─┴─┴─┴─╯
+//       │A│O│ │E│U│
+//       ╰─┴─╯ ╰─┴─╯
+pub struct Diagrammer {
+    template: Vec<Vec<Place>>,
+}
 
-    //     unimplemented!()
-    // }
+enum Place {
+    Stroke(char, Stroke),
+    Text(char),
+}
+
+impl Diagrammer {
+    pub fn new() -> Diagrammer {
+        static ROWS: &'static [&'static str] = &[
+            "___________#_____________",
+            "│S│T│P│H│ │*│ │F│P│L│T│D│",
+            "│S│K│W│R│ │*│ │R│B│G│S│Z│",
+            "╰─┴─┴─┴─╯ ╰─╯ ╰─┴─┴─┴─┴─╯",
+            "      │A│O│ │E│U│",
+            "      ╰─┴─╯ ╰─┴─╯"];
+
+        let template = ROWS.iter().map(|row| {
+            row.chars().enumerate().map(|(col, ch)| {
+                let line = if col > 9 {
+                    format!("-{}", ch)
+                } else {
+                    format!("{}", ch)
+                };
+                match Stroke::from_text(&line) {
+                    Ok(st) => Place::Stroke(ch, st),
+                    Err(_) => Place::Text(ch),
+                }
+            }).collect()
+        }).collect();
+
+        Diagrammer { template }
+    }
+
+    pub fn to_diagram(&self, stroke: Stroke) -> Vec<String> {
+        self.template.iter().map(|row| {
+            let mut line = String::new();
+            for cell in row.iter() {
+                match cell {
+                    Place::Text(t) => line.push(*t),
+                    Place::Stroke(ch, st) => {
+                        if stroke.has_any(*st) {
+                            line.push_str("\x1b[7m");
+                        } else {
+                            line.push_str("\x1b[37m");
+                        }
+                        line.push(*ch);
+                        line.push_str("\x1b[0m");
+                    }
+                }
+            }
+            line
+        }).collect()
+    }
 }
 
 // Display is in canoncal order.

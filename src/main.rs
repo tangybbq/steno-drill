@@ -9,7 +9,10 @@ use crossterm::{
 //     // io::{self, Write},
 // };
 use structopt::StructOpt;
-use crate::stroke::Stroke;
+use crate::stroke::{
+    Diagrammer,
+    Stroke,
+};
 
 #[derive(Debug, StructOpt)]
 enum Command {
@@ -76,8 +79,13 @@ fn main() -> Result<()> {
 
 // Learn.
 fn learn() -> Result<()> {
+    let diag = Diagrammer::new();
+
     while let Some(stroke) = read_stroke()? {
         println!("read: |{}|  {}\r", stroke.to_tape(), stroke);
+        for row in diag.to_diagram(stroke) {
+            println!("  > {}\r", row);
+        }
     }
 
     Ok(())
