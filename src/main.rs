@@ -3,16 +3,18 @@
 use anyhow::Result;
 use crossterm::{
     terminal::{enable_raw_mode, disable_raw_mode},
-    event::{self, Event, KeyEvent, KeyCode},
 };
 // use std::{
 //     // io::{self, Write},
 // };
 use structopt::StructOpt;
+use crate::input::StrokeReader;
 use crate::stroke::{
     Diagrammer,
-    Stroke,
 };
+
+mod input;
+mod stroke;
 
 #[derive(Debug, StructOpt)]
 enum Command {
@@ -31,8 +33,6 @@ struct Opt {
     #[structopt(subcommand)]
     command: Command,
 }
-
-mod stroke;
 
 /// RawMode captures raw mode in a RAII so that error exit will still clear raw mode.
 struct RawMode;
@@ -80,8 +80,9 @@ fn main() -> Result<()> {
 // Learn.
 fn learn() -> Result<()> {
     let diag = Diagrammer::new();
+    let mut reader = StrokeReader::new();
 
-    while let Some(stroke) = read_stroke()? {
+    while let Some(stroke) = reader.read_stroke()? {
         println!("read: |{}|  {}\r", stroke.to_tape(), stroke);
         for row in diag.to_diagram(stroke) {
             println!("  > {}\r", row);
@@ -89,23 +90,4 @@ fn learn() -> Result<()> {
     }
 
     Ok(())
-}
-
-// Read a single stroke.  Or None if the user wishes to exit.
-fn read_stroke() -> Result<Option<Stroke>> {
-    let mut buffer = String::new();
-
-    loop {
-        match event::read()? {
-            Event::Key(KeyEvent{ code: KeyCode::Esc, .. }) => return Ok(None),
-            Event::Key(KeyEvent{ code: KeyCode::Char(' '), .. }) => break,
-            Event::Key(KeyEvent{ code: KeyCode::Char(ch), .. }) => buffer.push(ch),
-            Event::Key(KeyEvent{ code: KeyCode::Backspace, .. }) => {
-                println!("Backspace\r");
-            }
-            _ => (),
-        }
-    }
-
-    Ok(Some(Stroke::from_text(&buffer)?))
 }
