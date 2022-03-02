@@ -77,7 +77,7 @@ fn main() -> Result<()> {
 // Learn.
 fn learn() -> Result<()> {
     while let Some(stroke) = read_stroke()? {
-        println!("read: {}\r", stroke);
+        println!("read: |{}|  {}\r", stroke.to_tape(), stroke);
     }
 
     Ok(())
@@ -92,6 +92,9 @@ fn read_stroke() -> Result<Option<Stroke>> {
             Event::Key(KeyEvent{ code: KeyCode::Esc, .. }) => return Ok(None),
             Event::Key(KeyEvent{ code: KeyCode::Char(' '), .. }) => break,
             Event::Key(KeyEvent{ code: KeyCode::Char(ch), .. }) => buffer.push(ch),
+            Event::Key(KeyEvent{ code: KeyCode::Backspace, .. }) => {
+                println!("Backspace\r");
+            }
             _ => (),
         }
     }

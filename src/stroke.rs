@@ -111,6 +111,39 @@ impl Stroke {
     pub fn has_any(self, other: Stroke) -> bool {
         (self.0 & other.0) != 0
     }
+
+    /// Return the paper tape representation of the stroke.
+    #[allow(dead_code)]
+    pub fn to_tape(self) -> String {
+        let mut buf = String::with_capacity(NORMAL.len() + 1);
+
+        let chars = if self.has_any(NUM) { NUMS } else { NORMAL };
+        let mut bit = NUM.0;
+        if self.has_any(Stroke(bit)) {
+            buf.push('#');
+        } else {
+            buf.push(' ');
+        }
+        for ch in chars.chars() {
+            bit >>= 1;
+            if self.has_any(Stroke(bit)) {
+                buf.push(ch);
+            } else {
+                buf.push(' ');
+            }
+        }
+
+        buf.to_string()
+    }
+
+    // /// Return the stroke as a diagram of the steno machine.
+    // #[allow(dead_code)]
+    // pub fn to_picture(self) -> Vec<String> {
+    //     let mut result = vec![];
+    //     let mut line = String::new();
+
+    //     unimplemented!()
+    // }
 }
 
 // Display is in canoncal order.
