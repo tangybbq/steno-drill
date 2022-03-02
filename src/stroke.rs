@@ -12,13 +12,8 @@
 //! The number bar can be textually represented by the '#' if needed to disambiguate.  If there are
 //! any number row characters present, the '#' is not needed.
 
-use anyhow::{
-    bail,
-    Result,
-};
-use std::{
-    fmt,
-};
+use anyhow::{bail, Result};
+use std::fmt;
 
 /// The stroke itself is just a 32 bit number.  It represents a single stroke on the machine.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -33,7 +28,7 @@ pub struct StenoWord(pub Vec<Stroke>);
 pub struct StenoPhrase(pub Vec<StenoWord>);
 
 static NORMAL: &str = "STKPWHRAO*EUFRPBLGTSDZ";
-static NUMS: &str   = "12K3W4R50*EU6R7B8G9SDZ";
+static NUMS: &str = "12K3W4R50*EU6R7B8G9SDZ";
 
 // #ST KPWH RAO* EURF PBLG TSDZ
 
@@ -169,44 +164,54 @@ impl Diagrammer {
             "│S│K│W│R│ │*│ │R│B│G│S│Z│",
             "╰─┴─┴─┴─╯ ╰─╯ ╰─┴─┴─┴─┴─╯",
             "      │A│O│ │E│U│",
-            "      ╰─┴─╯ ╰─┴─╯"];
+            "      ╰─┴─╯ ╰─┴─╯",
+        ];
 
-        let template = ROWS.iter().map(|row| {
-            row.chars().enumerate().map(|(col, ch)| {
-                let line = if col > 9 {
-                    format!("-{}", ch)
-                } else {
-                    format!("{}", ch)
-                };
-                match Stroke::from_text(&line) {
-                    Ok(st) => Place::Stroke(ch, st),
-                    Err(_) => Place::Text(ch),
-                }
-            }).collect()
-        }).collect();
+        let template = ROWS
+            .iter()
+            .map(|row| {
+                row.chars()
+                    .enumerate()
+                    .map(|(col, ch)| {
+                        let line = if col > 9 {
+                            format!("-{}", ch)
+                        } else {
+                            format!("{}", ch)
+                        };
+                        match Stroke::from_text(&line) {
+                            Ok(st) => Place::Stroke(ch, st),
+                            Err(_) => Place::Text(ch),
+                        }
+                    })
+                    .collect()
+            })
+            .collect();
 
         Diagrammer { template }
     }
 
     pub fn to_diagram(&self, stroke: Stroke) -> Vec<String> {
-        self.template.iter().map(|row| {
-            let mut line = String::new();
-            for cell in row.iter() {
-                match cell {
-                    Place::Text(t) => line.push(*t),
-                    Place::Stroke(ch, st) => {
-                        if stroke.has_any(*st) {
-                            line.push_str("\x1b[7m");
-                        } else {
-                            line.push_str("\x1b[37m");
+        self.template
+            .iter()
+            .map(|row| {
+                let mut line = String::new();
+                for cell in row.iter() {
+                    match cell {
+                        Place::Text(t) => line.push(*t),
+                        Place::Stroke(ch, st) => {
+                            if stroke.has_any(*st) {
+                                line.push_str("\x1b[7m");
+                            } else {
+                                line.push_str("\x1b[37m");
+                            }
+                            line.push(*ch);
+                            line.push_str("\x1b[0m");
                         }
-                        line.push(*ch);
-                        line.push_str("\x1b[0m");
                     }
                 }
-            }
-            line
-        }).collect()
+                line
+            })
+            .collect()
     }
 }
 
@@ -240,7 +245,7 @@ fn stroke_roundtrip() {
         return;
     }
 
-    for ch in 1u32 .. 0x800000 {
+    for ch in 1u32..0x800000 {
         let text = format!("{}", Stroke(ch));
         let orig = Stroke::from_text(&text).unwrap();
         if ch != orig.0 {

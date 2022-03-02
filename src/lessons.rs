@@ -1,9 +1,7 @@
 //! Processing of lessons.
 
+use crate::stroke::StenoPhrase;
 use anyhow::{anyhow, bail, Result};
-use crate::{
-    stroke::{StenoPhrase},
-};
 use std::{
     fs::File,
     io::{self, BufRead, BufReader},
@@ -45,7 +43,10 @@ impl Lesson {
             }
         }
 
-        Ok(Lesson { description, entries })
+        Ok(Lesson {
+            description,
+            entries,
+        })
     }
 }
 
@@ -65,20 +66,23 @@ impl Entry {
         if word.len() < 2 || !word.starts_with('\'') || !word.ends_with('\'') {
             bail!("Looks like entry, but word does not surrounded by ''");
         }
-        let word = &word[1..word.len()-1];
+        let word = &word[1..word.len() - 1];
         let word = word.to_string();
 
         let steno = StenoPhrase::parse(fields[1])?;
 
         println!("Entry: {:?} {}", word, steno);
 
-        Ok(Some(Entry{ word, steno }))
+        Ok(Some(Entry { word, steno }))
     }
 }
 
 // Read a single line from the reader, returning an error if we've reached the end.
 fn oneline<B>(rd: &mut io::Lines<B>) -> Result<String>
-where B: BufRead
+where
+    B: BufRead,
 {
-    Ok(rd.next().ok_or_else(|| anyhow!("Unexpected EOF on lesson file"))??)
+    Ok(rd
+        .next()
+        .ok_or_else(|| anyhow!("Unexpected EOF on lesson file"))??)
 }

@@ -1,20 +1,13 @@
 //! Steno learning application.
 
 use anyhow::Result;
-use crossterm::{
-    terminal::{enable_raw_mode, disable_raw_mode},
-};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 // use std::{
 //     // io::{self, Write},
 // };
-use structopt::StructOpt;
 use crate::input::StrokeReader;
-use crate::{
-    lessons::Lesson,
-    stroke::{
-        Diagrammer,
-    },
-};
+use crate::{lessons::Lesson, stroke::Diagrammer};
+use structopt::StructOpt;
 
 mod db;
 mod input;
@@ -79,14 +72,14 @@ fn main() -> Result<()> {
             // )?;
 
             learn()?;
-        },
+        }
         Command::Import(names) => {
             for name in names.files {
                 println!("import: {}", name);
                 let lesson = Lesson::load(name)?;
                 println!("lesson: {:#?}", lesson);
             }
-        },
+        }
     }
 
     Ok(())

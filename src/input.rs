@@ -10,12 +10,8 @@
 //! cross a boundary.
 
 use anyhow::Result;
-use crossterm::{
-    event::{self, Event, KeyEvent, KeyCode},
-};
-use std::{
-    collections::VecDeque,
-};
+use crossterm::event::{self, Event, KeyCode, KeyEvent};
+use std::collections::VecDeque;
 
 use crate::stroke::Stroke;
 
@@ -37,13 +33,26 @@ impl StrokeReader {
 
         loop {
             match event::read()? {
-                Event::Key(KeyEvent{ code: KeyCode::Esc, .. }) => return Ok(None),
-                Event::Key(KeyEvent{ code: KeyCode::Char(' '), ..}) => break,
-                Event::Key(KeyEvent{ code: KeyCode::Char(ch), ..} ) => buffer.push(ch),
-                Event::Key(KeyEvent{ code: KeyCode::Backspace, .. }) => {
+                Event::Key(KeyEvent {
+                    code: KeyCode::Esc, ..
+                }) => return Ok(None),
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char(' '),
+                    ..
+                }) => break,
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char(ch),
+                    ..
+                }) => buffer.push(ch),
+                Event::Key(KeyEvent {
+                    code: KeyCode::Backspace,
+                    ..
+                }) => {
                     if buffer.is_empty() {
                         // Pop a stroke.
-                        let count = if let Some(count) = self.sizes.pop_back() { count } else {
+                        let count = if let Some(count) = self.sizes.pop_back() {
+                            count
+                        } else {
                             println!("Warning, backspace before input\r");
                             continue;
                         };
@@ -57,7 +66,7 @@ impl StrokeReader {
                             }
                             n => {
                                 // Not word boundary, just reduce the count.
-                                self.sizes.push_back(n-1);
+                                self.sizes.push_back(n - 1);
                             }
                         }
                     } else {
