@@ -45,7 +45,10 @@ impl Db {
         for line in SCHEMA {
             tx.execute(line, [])?;
         }
-        tx.execute("INSERT INTO schema (version) VALUES (:version)", &[(":version", SCHEMA_VERSION)])?;
+        tx.execute(
+            "INSERT INTO schema (version) VALUES (:version)",
+            &[(":version", SCHEMA_VERSION)],
+        )?;
         tx.commit()?;
         Ok(())
     }
@@ -53,11 +56,13 @@ impl Db {
     /// Open the database
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Db> {
         let conn = Connection::open(path)?;
-        let version: String =
-            conn.query_row("SELECT version FROM schema", [],
-                |row| row.get(0))?;
+        let version: String = conn.query_row("SELECT version FROM schema", [], |row| row.get(0))?;
         if version != SCHEMA_VERSION {
-            bail!("Schema version mismatch: found {}, want {}", version, SCHEMA_VERSION);
+            bail!(
+                "Schema version mismatch: found {}, want {}",
+                version,
+                SCHEMA_VERSION
+            );
         }
 
         Ok(Db { conn })
@@ -68,22 +73,26 @@ impl Db {
         let tx = self.conn.transaction()?;
 
         // Create the lesson, getting its new ID.
-        tx.execute("INSERT INTO list (name) VALUES (:name)",
-            &[(":name", &lesson.description)])?;
+        tx.execute(
+            "INSERT INTO list (name) VALUES (:name)",
+            &[(":name", &lesson.description)],
+        )?;
         let id = tx.last_insert_rowid();
         println!("New ID: {}", id);
 
         for (seq, entry) in lesson.entries.iter().enumerate() {
             let steno = format!("{}", entry.steno);
             // println!("entry: {} {}", entry.word, entry.steno);
-            match tx.execute("INSERT INTO lesson (word, steno, listid, seq)
+            match tx.execute(
+                "INSERT INTO lesson (word, steno, listid, seq)
                 VALUES (:word, :steno, :listid, :seq)",
                 named_params! {
                     ":word": &entry.word,
                     ":steno": &steno,
                     ":listid": id,
                     ":seq": seq + 1,
-                }) {
+                },
+            ) {
                 Ok(_) => (),
                 Err(msg) => {
                     println!("Warn: {}", msg);
@@ -98,7 +107,8 @@ impl Db {
 
     /// Show the information about lessons.
     pub fn info(&mut self, seen: bool, unseen: bool) -> Result<()> {
-        let mut stmt = self.conn.prepare("SELECT
+        let mut stmt = self.conn.prepare(
+            "SELECT
             list.id,
             (SELECT COUNT(*) FROM learn, lesson WHERE
                 lesson.listid = list.id AND
@@ -106,15 +116,16 @@ impl Db {
             (SELECT COUNT(*) FROM lesson WHERE lesson.listid = list.id),
             name
             FROM list
-            ORDER by list.id")?;
-        for row in stmt.query_map([], |row|
+            ORDER by list.id",
+        )?;
+        for row in stmt.query_map([], |row| {
             Ok(InfoResult {
                 id: row.get(0)?,
                 num: row.get(1)?,
                 total: row.get(2)?,
                 name: row.get(3)?,
-            }))?
-        {
+            })
+        })? {
             let row = row?;
             if seen && row.num == 0 {
                 continue;
@@ -122,13 +133,14 @@ impl Db {
             if unseen && row.num > 0 {
                 continue;
             }
-            println!("  {:2}. {:5}/{:<5}:{} {}", row.id, row.num, row.total,
-                if row.num == row.total {
-                    '✓'
-                } else {
-                    ' '
-                },
-                row.name);
+            println!(
+                "  {:2}. {:5}/{:<5}:{} {}",
+                row.id,
+                row.num,
+                row.total,
+                if row.num == row.total { '✓' } else { ' ' },
+                row.name
+            );
         }
 
         Ok(())
@@ -139,25 +151,30 @@ impl Db {
         let now = get_now();
         let mut result = vec![];
 
-        let mut stmt = self.conn.prepare("
+        let mut stmt = self.conn.prepare(
+            "
             SELECT word, steno, goods, interval, next
             FROM learn
             WHERE next < :now
             ORDER BY next
-            LIMIT :limit")?;
-        for row in stmt.query_map(named_params!{
-            ":now": now,
-            ":limit": count,
-        }, |row| {
-            let steno: String = row.get(1)?;
-            Ok(Work {
-                text: row.get(0)?,
-                strokes: StenoPhrase::parse(&steno).unwrap(),
-                goods: row.get(2)?,
-                interval: row.get(3)?,
-                next: row.get(4)?,
-            })})?
-        {
+            LIMIT :limit",
+        )?;
+        for row in stmt.query_map(
+            named_params! {
+                ":now": now,
+                ":limit": count,
+            },
+            |row| {
+                let steno: String = row.get(1)?;
+                Ok(Work {
+                    text: row.get(0)?,
+                    strokes: StenoPhrase::parse(&steno).unwrap(),
+                    goods: row.get(2)?,
+                    interval: row.get(3)?,
+                    next: row.get(4)?,
+                })
+            },
+        )? {
             result.push(row?);
         }
 
@@ -166,18 +183,23 @@ impl Db {
 
     /// Query how many words are due.
     pub fn get_due_count(&mut self) -> Result<usize> {
-        Ok(self.conn.query_row("
+        Ok(self.conn.query_row(
+            "
             SELECT COUNT(*)
             FROM learn
             WHERE next < :now",
-            named_params!{ ":now": get_now() },
-            |row| row.get(0))?)
+            named_params! { ":now": get_now() },
+            |row| row.get(0),
+        )?)
     }
 
     /// Retrieve a new word from the given list.  None indicates there is nothing left to learn on
     /// this list.
     pub fn get_new(&mut self, list: usize) -> Result<Option<Work>> {
-        Ok(self.conn.query_row("
+        Ok(self
+            .conn
+            .query_row(
+                "
             SELECT word, steno
             FROM lesson
             WHERE
@@ -185,25 +207,32 @@ impl Db {
                 lesson.word NOT IN (SELECT word FROM learn)
             ORDER BY seq
             LIMIT 1",
-            named_params!{
-                ":list": list,
-            }, |row| {
-                let steno: String = row.get(1)?;
-                Ok(Work {
-                    text: row.get(0)?,
-                    strokes: StenoPhrase::parse(&steno).unwrap(),
-                    goods: 0,
-                    interval: 3.0,
-                    next: 0.0,
-                })
-            }).optional()?)
+                named_params! {
+                    ":list": list,
+                },
+                |row| {
+                    let steno: String = row.get(1)?;
+                    Ok(Work {
+                        text: row.get(0)?,
+                        strokes: StenoPhrase::parse(&steno).unwrap(),
+                        goods: 0,
+                        interval: 3.0,
+                        next: 0.0,
+                    })
+                },
+            )
+            .optional()?)
     }
 
     /// Update the given work in the database.  `corrections` is the number of corrections the user
     /// had to make to write this.  For now, we consider 0 a success and will increase the good
     /// count and interval.
     pub fn update(&mut self, work: &Work, corrections: usize) -> Result<()> {
-        let goods = if corrections == 0 { work.goods + 1 } else { work.goods };
+        let goods = if corrections == 0 {
+            work.goods + 1
+        } else {
+            work.goods
+        };
         let interval = if corrections == 0 {
             // Generate a random factor between 2.0 and 2.5.  This will distribute the resulting
             // times a bit randomly, keeping groups of words from being asked in the same order
@@ -217,25 +246,32 @@ impl Db {
         let steno = format!("{}", work.strokes);
 
         let tx = self.conn.transaction()?;
-        tx.execute("
+        tx.execute(
+            "
             INSERT OR REPLACE INTO learn
             (word, steno, goods, interval, next)
             VALUES (:word, :steno, :goods, :interval, :next)",
-            named_params!{
+            named_params! {
                 ":steno": &steno,
                 ":goods": goods,
                 ":interval": interval,
                 ":next": next,
                 ":word": &work.text,
-            })?;
+            },
+        )?;
         tx.commit()?;
         Ok(())
     }
 
     /// Retrieve a histogram of the number of words in range of dates.
     pub fn get_histogram(&mut self) -> Result<Vec<Bucket>> {
-        let mut result: Vec<_> = BUCKETS.iter().map(|b|
-            Bucket{ name: b.name, count: 0 }).collect();
+        let mut result: Vec<_> = BUCKETS
+            .iter()
+            .map(|b| Bucket {
+                name: b.name,
+                count: 0,
+            })
+            .collect();
 
         let mut stmt = self.conn.prepare("SELECT interval FROM learn")?;
         for interval in stmt.query_map([], |row| row.get::<usize, f64>(0))? {
@@ -278,7 +314,9 @@ pub struct Work {
 // left for sub-seconds.  We really only need a few bits of precision beyond seconds (even seconds
 // would probably be fine).
 fn get_now() -> f64 {
-    let dur = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+    let dur = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap();
 
     dur.as_secs() as f64 + (dur.subsec_millis() as f64 / 1000.0)
 }
