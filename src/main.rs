@@ -190,6 +190,9 @@ fn learn_one(reader: &mut StrokeReader, work: &Work, rest: &[Work]) -> Result<Op
     let expect = work.strokes.linear();
     let mut sofar = vec![];
 
+    if !rest.is_empty() {
+        print!(" |");
+    }
     for r in rest {
         print!(" {}", r.text);
     }
