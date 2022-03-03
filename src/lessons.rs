@@ -66,7 +66,7 @@ impl Entry {
         if word.len() < 2 || !word.starts_with('\'') || !word.ends_with('\'') {
             // If the extra data has a colon in it, it will trigger this.
             println!("warning: {}: {}", word, fields[1]);
-            return Ok(None)
+            return Ok(None);
             // bail!("Looks like entry, but word is not surrounded by ''");
         }
         let word = &word[1..word.len() - 1];
