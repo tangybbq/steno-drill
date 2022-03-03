@@ -73,6 +73,10 @@ struct LearnCommand {
     #[structopt(long = "new")]
     /// A lesson to pull new words from
     new: Option<usize>,
+
+    #[structopt(long = "tui")]
+    /// Enable the TUI interface
+    tui: bool,
 }
 
 #[derive(Debug, StructOpt)]
@@ -107,12 +111,16 @@ fn main() -> Result<()> {
     match opt.command {
         Command::Learn(args) => {
             let mut db = Db::open(&args.file)?;
-            let _raw = RawMode::new()?;
+            if args.tui {
+                println!("TODO: tui");
+            } else {
+                let _raw = RawMode::new()?;
 
-            println!("Be sure Plover is configured to raw steno (no dict) and space after\r");
-            println!("Press <Esc> to exit\r\n");
+                println!("Be sure Plover is configured to raw steno (no dict) and space after\r");
+                println!("Press <Esc> to exit\r\n");
 
-            learn(&mut db, args.new)?;
+                learn(&mut db, args.new)?;
+            }
         }
         Command::Import(args) => {
             let mut db = Db::open(&args.file)?;
