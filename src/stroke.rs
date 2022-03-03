@@ -65,12 +65,11 @@ impl Stroke {
 
                 while bit > MID.0 {
                     bit >>= 1;
-                    if let Some(_) = norms.next() {
+                    if norms.next().is_some() {
                     } else {
                         panic!("State error");
                     }
-                    if let Some(_) = nums.next() {
-                    } else {
+                    if nums.next().is_none() {
                         panic!("State error");
                     }
                 }
