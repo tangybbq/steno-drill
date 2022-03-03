@@ -23,11 +23,11 @@ use std::fmt;
 pub struct Stroke(u32);
 
 /// A steno word is a group of strokes that are represented separated by slashes.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StenoWord(pub Vec<Stroke>);
 
 /// A steno phrase is a group of words.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StenoPhrase(pub Vec<StenoWord>);
 
 static NORMAL: &str = "STKPWHRAO*EUFRPBLGTSDZ";

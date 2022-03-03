@@ -3,7 +3,7 @@
 use crate::Lesson;
 use crate::stroke::StenoPhrase;
 use anyhow::{bail, Result};
-use rusqlite::{named_params, Connection};
+use rusqlite::{named_params, Connection, OptionalExtension};
 use std::path::Path;
 use std::time::SystemTime;
 
@@ -137,6 +137,7 @@ impl Db {
             SELECT word, steno, goods, interval, next
             FROM learn
             WHERE next < :now
+            ORDER BY next
             LIMIT :limit")?;
         for row in stmt.query_map(named_params!{
             ":now": now,
@@ -157,6 +158,31 @@ impl Db {
         Ok(result)
     }
 
+    /// Retrieve a new word from the given list.  None indicates there is nothing left to learn on
+    /// this list.
+    pub fn get_new(&mut self, list: usize) -> Result<Option<Work>> {
+        Ok(self.conn.query_row("
+            SELECT word, steno
+            FROM lesson
+            WHERE
+                lesson.listid = :list AND
+                lesson.word NOT IN (SELECT word FROM learn)
+            ORDER BY seq
+            LIMIT 1",
+            named_params!{
+                ":list": list,
+            }, |row| {
+                let steno: String = row.get(1)?;
+                Ok(Work {
+                    text: row.get(0)?,
+                    strokes: StenoPhrase::parse(&steno).unwrap(),
+                    goods: 0,
+                    interval: 3.0,
+                    next: 0.0,
+                })
+            }).optional()?)
+    }
+
     /// Update the given work in the database.  `corrections` is the number of corrections the user
     /// had to make to write this.  For now, we consider 0 a success and will increase the good
     /// count and interval.
@@ -168,15 +194,15 @@ impl Db {
             5.0
         };
         let next = get_now() + interval;
+        let steno = format!("{}", work.strokes);
 
         let tx = self.conn.transaction()?;
         tx.execute("
-            UPDATE learn
-            SET goods = :goods,
-                interval = :interval,
-                next = :next
-            WHERE word = :word",
+            INSERT OR REPLACE INTO learn
+            (word, steno, goods, interval, next)
+            VALUES (:word, :steno, :goods, :interval, :next)",
             named_params!{
+                ":steno": &steno,
                 ":goods": goods,
                 ":interval": interval,
                 ":next": next,
@@ -191,7 +217,7 @@ impl Db {
 /// with each stroke.  For multiple stroke words, only the last stroke will include the text.  This
 /// is similar to real behavior, but without the false words showing up first and then being
 /// deleted.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Work {
     pub text: String,
     pub strokes: StenoPhrase,

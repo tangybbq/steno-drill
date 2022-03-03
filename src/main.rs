@@ -112,7 +112,7 @@ fn main() -> Result<()> {
             println!("Be sure Plover is configured to raw steno (no dict) and space after\r");
             println!("Press <Esc> to exit\r\n");
 
-            learn(&mut db)?;
+            learn(&mut db, args.new)?;
         }
         Command::Import(args) => {
             let mut db = Db::open(&args.file)?;
@@ -140,24 +140,34 @@ fn main() -> Result<()> {
 }
 
 // Learn.
-fn learn(db: &mut Db) -> Result<()> {
+fn learn(db: &mut Db, new: Option<usize>) -> Result<()> {
     // let diag = Diagrammer::new();
     let mut reader = StrokeReader::new();
 
     loop {
         let words = db.get_drills(5)?;
 
+        let head: Work;
+        let rest: &[Work];
         if words.is_empty() {
-            println!("No more words left to learn.\r");
-            break;
-        }
-
-        let (head, rest) = words.split_at(1);
-        if head.len() < 1 {
-            println!("TODO: Learn new words\r");
-            return Ok(());
-        }
-        let head = &head[0];
+            if let Some(list) = new {
+                if let Some(work) = db.get_new(list)? {
+                    println!("\nLearn new word: {}: {}\r", work.text, work.strokes);
+                    head = work;
+                    rest = &[];
+                } else {
+                    println!("No more words left in list.\r");
+                    break;
+                }
+            } else {
+                println!("No more words left to learn.\r");
+                break;
+            }
+        } else {
+            let (h, r) = words.split_at(1);
+            head = h[0].clone();
+            rest = r;
+        };
 
         match learn_one(&mut reader, &head, rest)? {
             None => break,
