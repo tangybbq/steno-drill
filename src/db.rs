@@ -231,6 +231,26 @@ impl Db {
         tx.commit()?;
         Ok(())
     }
+
+    /// Retrieve a histogram of the number of words in range of dates.
+    pub fn get_histogram(&mut self) -> Result<Vec<Bucket>> {
+        let mut result: Vec<_> = BUCKETS.iter().map(|b|
+            Bucket{ name: b.name, count: 0 }).collect();
+
+        let mut stmt = self.conn.prepare("SELECT interval FROM learn")?;
+        for interval in stmt.query_map([], |row| row.get::<usize, f64>(0))? {
+            let interval = interval?;
+
+            for (dest, src) in result.iter_mut().zip(BUCKETS) {
+                if interval < src.limit {
+                    dest.count += 1;
+                    break;
+                }
+            }
+        }
+
+        Ok(result)
+    }
 }
 
 /// Steno can be made as "Work" which is a linear sequence of strokes, and pieces of text that go
@@ -269,3 +289,34 @@ struct InfoResult {
     total: usize,
     name: String,
 }
+
+/// Buckets describing a histogram result.
+#[derive(Clone, Debug)]
+pub struct Bucket {
+    pub name: &'static str,
+    pub count: u64,
+}
+
+/// The buckets
+struct SrcBucket {
+    name: &'static str,
+    limit: f64,
+}
+
+static BUCKETS: &'static [SrcBucket] = &[
+    SrcBucket{ name: "fresh", limit: (10 * MIN) as f64, },
+    SrcBucket{ name: "10min", limit: HOUR as f64, },
+    SrcBucket{ name: "hour", limit: DAY as f64, },
+    SrcBucket{ name: "day", limit: WEEK as f64, },
+    SrcBucket{ name: "week", limit: MONTH as f64, },
+    SrcBucket{ name: "month", limit: YEAR as f64, },
+    SrcBucket{ name: "solid", limit: f64::MAX, },
+];
+
+// Some useful time constants, all based on seconds.
+const MIN: u64 = 60;
+const HOUR: u64 = 60 * MIN;
+const DAY: u64 = 24 * HOUR;
+const WEEK: u64 = 7 * DAY;
+const MONTH: u64 = 4 * WEEK;
+const YEAR: u64 = 52 * WEEK;

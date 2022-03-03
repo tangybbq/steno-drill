@@ -133,6 +133,12 @@ fn main() -> Result<()> {
         Command::Info(args) => {
             let mut db = Db::open(&args.file)?;
             db.info(args.seen, args.unseen)?;
+            println!();
+            for bucket in db.get_histogram()? {
+                if bucket.count > 0 {
+                    println!("{:6}: {}", bucket.name, bucket.count);
+                }
+            }
         }
     }
 
