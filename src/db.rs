@@ -195,7 +195,7 @@ impl Db {
     pub fn update(&mut self, work: &Work, corrections: usize) -> Result<()> {
         let goods = if corrections == 0 { work.goods + 1 } else { work.goods };
         let interval = if corrections == 0 {
-            work.interval * 1.5
+            work.interval * 1.75
         } else {
             5.0
         };
