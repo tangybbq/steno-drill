@@ -342,14 +342,38 @@ struct SrcBucket {
 }
 
 static BUCKETS: &'static [SrcBucket] = &[
-    SrcBucket{ name: "fresh", limit: (10 * MIN) as f64, },
-    SrcBucket{ name: "10min", limit: HOUR as f64, },
-    SrcBucket{ name: "hour", limit: (6 * HOUR) as f64, },
-    SrcBucket{ name: "6hour", limit: DAY as f64, },
-    SrcBucket{ name: "day", limit: WEEK as f64, },
-    SrcBucket{ name: "week", limit: MONTH as f64, },
-    SrcBucket{ name: "month", limit: YEAR as f64, },
-    SrcBucket{ name: "solid", limit: f64::MAX, },
+    SrcBucket {
+        name: "fresh",
+        limit: (10 * MIN) as f64,
+    },
+    SrcBucket {
+        name: "10min",
+        limit: HOUR as f64,
+    },
+    SrcBucket {
+        name: "hour",
+        limit: (6 * HOUR) as f64,
+    },
+    SrcBucket {
+        name: "6hour",
+        limit: DAY as f64,
+    },
+    SrcBucket {
+        name: "day",
+        limit: WEEK as f64,
+    },
+    SrcBucket {
+        name: "week",
+        limit: MONTH as f64,
+    },
+    SrcBucket {
+        name: "month",
+        limit: YEAR as f64,
+    },
+    SrcBucket {
+        name: "solid",
+        limit: f64::MAX,
+    },
 ];
 
 // Some useful time constants, all based on seconds.
