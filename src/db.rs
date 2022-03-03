@@ -122,7 +122,13 @@ impl Db {
             if unseen && row.num > 0 {
                 continue;
             }
-            println!("  {:2}. {:5}/{:<5}: {}", row.id, row.num, row.total, row.name);
+            println!("  {:2}. {:5}/{:<5}:{} {}", row.id, row.num, row.total,
+                if row.num == row.total {
+                    '✓'
+                } else {
+                    ' '
+                },
+                row.name);
         }
 
         Ok(())
