@@ -250,10 +250,6 @@ impl fmt::Display for Stroke {
 
 #[test]
 fn stroke_roundtrip() {
-    if let Err(_) = std::env::var("SDRILL_LONG_TESTS") {
-        return;
-    }
-
     for ch in 1u32..0x800000 {
         let text = format!("{}", Stroke(ch));
         let orig = Stroke::from_text(&text).unwrap();

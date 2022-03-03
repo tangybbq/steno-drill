@@ -12,3 +12,8 @@ rand = "0.8"
 rusqlite = "0.27"
 structopt = "0.3"
 tui = "0.17"
+
+# If we enable optimization during testing, we can run the long test
+# every time as it only takes a few seconds.
+[profile.test]
+opt-level = 2
