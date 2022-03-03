@@ -1,10 +1,10 @@
 //! Steno learning application.
 
-use anyhow::Result;
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crate::db::{Db, Work};
 use crate::input::StrokeReader;
 use crate::lessons::Lesson;
+use anyhow::Result;
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use std::io::Write;
 use structopt::StructOpt;
 

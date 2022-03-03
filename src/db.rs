@@ -1,7 +1,7 @@
 //! Learning database operations.
 
-use crate::Lesson;
 use crate::stroke::StenoPhrase;
+use crate::Lesson;
 use anyhow::{bail, Result};
 use rusqlite::{named_params, Connection, OptionalExtension};
 use std::path::Path;
