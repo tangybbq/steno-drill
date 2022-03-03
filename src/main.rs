@@ -218,7 +218,9 @@ fn learn_one(reader: &mut StrokeReader, work: &Work, rest: &[Work]) -> Result<Op
         let mut failed = false;
 
         for (pos, &st) in sofar.iter().enumerate() {
-            print!("/");
+            if pos > 0 {
+                print!("/");
+            }
             if pos >= expect.len() || expect[pos] != st {
                 failed = true;
                 print!("%");
