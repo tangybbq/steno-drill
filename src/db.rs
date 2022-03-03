@@ -164,6 +164,16 @@ impl Db {
         Ok(result)
     }
 
+    /// Query how many words are due.
+    pub fn get_due_count(&mut self) -> Result<usize> {
+        Ok(self.conn.query_row("
+            SELECT COUNT(*)
+            FROM learn
+            WHERE next < :now",
+            named_params!{ ":now": get_now() },
+            |row| row.get(0))?)
+    }
+
     /// Retrieve a new word from the given list.  None indicates there is nothing left to learn on
     /// this list.
     pub fn get_new(&mut self, list: usize) -> Result<Option<Work>> {

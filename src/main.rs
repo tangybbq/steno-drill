@@ -169,6 +169,7 @@ fn learn(db: &mut Db, new: Option<usize>) -> Result<()> {
             rest = r;
         };
 
+        println!("{} words due\r", db.get_due_count()?);
         match learn_one(&mut reader, &head, rest)? {
             None => break,
             Some(count) => {
