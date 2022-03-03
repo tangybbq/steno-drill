@@ -205,11 +205,11 @@ impl Db {
     pub fn update(&mut self, work: &Work, corrections: usize) -> Result<()> {
         let goods = if corrections == 0 { work.goods + 1 } else { work.goods };
         let interval = if corrections == 0 {
-            // Generate a random factor between 1.5 and 2.0.  This will distribute the resulting
+            // Generate a random factor between 2.0 and 2.5.  This will distribute the resulting
             // times a bit randomly, keeping groups of words from being asked in the same order
             // each time.
             let bias = rand::random::<f64>() * 0.5;
-            work.interval * (1.5 + bias)
+            work.interval * (2.0 + bias)
         } else {
             5.0
         };
