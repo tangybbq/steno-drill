@@ -167,7 +167,7 @@ enum Place {
 
 impl Diagrammer {
     pub fn new() -> Diagrammer {
-        static ROWS: &'static [&'static str] = &[
+        static ROWS: &[&str] = &[
             "___________#_____________",
             "│S│T│P│H│ │*│ │F│P│L│T│D│",
             "│S│K│W│R│ │*│ │R│B│G│S│Z│",

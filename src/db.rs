@@ -8,9 +8,9 @@ use std::path::Path;
 use std::time::SystemTime;
 
 /// The schema version that matches this code.  May be usable in the future for automatic upgrades.
-static SCHEMA_VERSION: &'static str = "2022-03-02a";
+static SCHEMA_VERSION: &str = "2022-03-02a";
 
-static SCHEMA: &'static [&'static str] = &[
+static SCHEMA: &[&str] = &[
     "CREATE TABLE learn (
         word TEXT UNIQUE PRIMARY KEY,
         steno TEXT NOT NULL,
@@ -341,7 +341,7 @@ struct SrcBucket {
     limit: f64,
 }
 
-static BUCKETS: &'static [SrcBucket] = &[
+static BUCKETS: &[SrcBucket] = &[
     SrcBucket {
         name: "fresh",
         limit: (10 * MIN) as f64,
