@@ -145,7 +145,7 @@ impl Stroke {
 
     /// Is this stroke the star?
     pub fn is_star(self) -> bool {
-        self.has_any(STAR)
+        self == STAR
     }
 }
 
