@@ -147,11 +147,14 @@ fn main() -> Result<()> {
             let due = db.get_due_count()?;
             println!();
             println!("{} words due", due);
-            for bucket in db.get_histogram()? {
+            let hist = db.get_histogram()?;
+            for bucket in &hist {
                 if bucket.count > 0 {
                     println!("{:6}: {}", bucket.name, bucket.count);
                 }
             }
+            println!("------: ----");
+            println!("{:6}: {}", "", hist.iter().map(|b| b.count).sum::<u64>());
         }
     }
 
