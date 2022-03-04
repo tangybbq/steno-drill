@@ -19,6 +19,12 @@ pub struct StrokeReader {
     sizes: VecDeque<usize>,
 }
 
+pub enum Value {
+    Stroke(Stroke),
+    Resize(u16, u16),
+    Exit,
+}
+
 impl StrokeReader {
     pub fn new() -> StrokeReader {
         StrokeReader {
@@ -28,14 +34,14 @@ impl StrokeReader {
 
     /// Attempt to read a stroke from the input.  Returns Ok(None) when Escape is pressed, to
     /// indicate the user wishes to exit.
-    pub fn read_stroke(&mut self) -> Result<Option<Stroke>> {
+    pub fn read_stroke(&mut self) -> Result<Value> {
         let mut buffer = String::new();
 
         loop {
             match event::read()? {
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc, ..
-                }) => return Ok(None),
+                }) => return Ok(Value::Exit),
                 Event::Key(KeyEvent {
                     code: KeyCode::Char(' '),
                     ..
@@ -62,7 +68,7 @@ impl StrokeReader {
                                 // Word boundary, return the deletion up, and leave the stroke
                                 // popped.
                                 // println!("Return *\r");
-                                return Ok(Some(Stroke::from_text("*")?));
+                                return Ok(Value::Stroke(Stroke::from_text("*")?));
                             }
                             n => {
                                 // Not word boundary, just reduce the count.
@@ -71,8 +77,14 @@ impl StrokeReader {
                         }
                     } else {
                         println!("TODO: Backspace in a word");
-                        return Ok(None);
+                        return Ok(Value::Exit);
                     }
+                }
+                Event::Resize(x, y) => {
+                    if buffer.len() > 0 {
+                        println!("TODO: Resize during a stroke");
+                    }
+                    return Ok(Value::Resize(x, y));
                 }
                 _ => (),
             }
@@ -83,6 +95,6 @@ impl StrokeReader {
             _ = self.sizes.pop_front();
         }
 
-        Ok(Some(Stroke::from_text(&buffer)?))
+        Ok(Value::Stroke(Stroke::from_text(&buffer)?))
     }
 }

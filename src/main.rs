@@ -1,8 +1,9 @@
 //! Steno learning application.
 
 use crate::db::{Db, Work};
-use crate::input::StrokeReader;
+use crate::input::{StrokeReader, Value};
 use crate::lessons::Lesson;
+use crate::ui::Ui;
 use anyhow::Result;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use std::io::Write;
@@ -12,6 +13,7 @@ mod db;
 mod input;
 mod lessons;
 mod stroke;
+mod ui;
 
 #[derive(Debug, StructOpt)]
 enum Command {
@@ -112,7 +114,8 @@ fn main() -> Result<()> {
         Command::Learn(args) => {
             let mut db = Db::open(&args.file)?;
             if args.tui {
-                println!("TODO: tui");
+                let mut ui = Ui::new()?;
+                ui.run()?;
             } else {
                 let _raw = RawMode::new()?;
 
@@ -217,11 +220,13 @@ fn learn_one(reader: &mut StrokeReader, work: &Work, rest: &[Work]) -> Result<Op
     loop {
         stdout.flush()?;
 
-        let stroke = if let Some(stroke) = reader.read_stroke()? {
-            stroke
-        } else {
-            println!("\r\n\nEarly exit\r");
-            return Ok(None);
+        let stroke = match reader.read_stroke()? {
+            Value::Stroke(s) => s,
+            Value::Exit => {
+                println!("\r\n\nEarly exit\r");
+                return Ok(None);
+            }
+            Value::Resize(_, _) => continue,
         };
         print!("--> ");
 
