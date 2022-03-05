@@ -290,7 +290,7 @@ impl App {
         }
         // Add blank lines to fill the available space.
         while items.len() < height {
-            items.push(ListItem::new("-"));
+            items.push(ListItem::new(""));
         }
         items.reverse();
         let tape = List::new(items).block(Block::default().title("Tape").borders(Borders::ALL));
