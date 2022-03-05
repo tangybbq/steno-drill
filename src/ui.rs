@@ -66,6 +66,9 @@ struct App {
     // The factor used to decay the WPM.  This is the amount of the previous value used to compute
     // the updated WPM.  It starts at 0 and works its way up to 0.95.
     factor: f64,
+
+    // New words that have been learned.
+    new_words: usize,
 }
 
 impl Ui {
@@ -127,8 +130,9 @@ impl Ui {
 
         self.app.status.clear();
         self.app.status.push(ListItem::new(format!("words due: {}", due)));
+        self.app.status.push(ListItem::new(format!("new words: {}", self.app.new_words)));
         self.app.status.push(ListItem::new(format!("WPM: {:.1}", self.app.wpm)));
-        self.app.status.push(ListItem::new(format!("factor: {:.4}", self.app.factor)));
+        // self.app.status.push(ListItem::new(format!("factor: {:.4}", self.app.factor)));
 
         self.app.rstatus.clear();
         let hist = self.db.get_histogram()?;
@@ -161,6 +165,7 @@ impl Ui {
                     self.app.text.push_str(&work.text);
                     self.app.help = Some(format!("New word: {}", work.strokes));
                     self.app.head = Some(work);
+                    self.app.new_words += 1;
                 } else {
                     self.goodbye = Some("No more words left in list.".to_string());
                     return Ok(true);
