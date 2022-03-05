@@ -1,5 +1,7 @@
 # Steno Drilling
 
+![Drill example](img/sdrill-learn.png)
+
 [Typey-Type](https://didoesdigital.com/typey-type/) is a wonderful
 tool for learning steno.  It has a lot of things going for it,
 probably most importantly being that it has a set of lesson plans and
