@@ -114,7 +114,7 @@ fn main() -> Result<()> {
         Command::Learn(args) => {
             let mut db = Db::open(&args.file)?;
             if args.tui {
-                let mut ui = Ui::new()?;
+                let mut ui = Ui::new(db)?;
                 ui.run()?;
             } else {
                 let _raw = RawMode::new()?;
