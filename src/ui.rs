@@ -24,6 +24,10 @@ pub struct Ui {
     app: App,
     reader: StrokeReader,
     db: Db,
+    new: Option<usize>,
+
+    // A goodbye message.
+    goodbye: Option<String>,
 }
 
 // State of the application.
@@ -56,7 +60,7 @@ struct App {
 }
 
 impl Ui {
-    pub fn new(db: Db) -> Result<Ui> {
+    pub fn new(db: Db, new: Option<usize>) -> Result<Ui> {
         let mut stdout = io::stdout();
         enable_raw_mode()?;
         execute!(stdout, EnterAlternateScreen)?;
@@ -70,6 +74,8 @@ impl Ui {
             app,
             reader,
             db,
+            new,
+            goodbye: None,
         })
     }
 
@@ -130,33 +136,44 @@ impl Ui {
     fn update(&mut self) -> Result<bool> {
         let words = self.db.get_drills(20)?;
 
-        if words.is_empty() {
-            // New list, for now, just exit.
-            return Ok(true);
-        }
-
         self.app.text.clear();
         self.app.sofar.clear();
         self.app.expected.clear();
-
-        for (id, word) in words.iter().enumerate() {
-            if id > 0 {
-                self.app.text.push(' ');
-            }
-            self.app.text.push_str(&word.text);
-            if id == 0 {
-                self.app.expected.append(&mut word.strokes.linear());
-                self.app.text.push_str(" |");
-            }
-        }
-        if let Some(head) = words.first() {
-            self.app.head = Some(head.clone());
-        } else {
-            unreachable!();
-        }
-
         self.app.corrected = 0;
         self.app.help = None;
+
+        if words.is_empty() {
+            if let Some(list) = self.new {
+                if let Some(work) = self.db.get_new(list)? {
+                    self.app.expected.append(&mut work.strokes.linear());
+                    self.app.text.push_str(&work.text);
+                    self.app.help = Some(format!("New word: {}", work.strokes));
+                    self.app.head = Some(work);
+                } else {
+                    self.goodbye = Some("No more words left in list.".to_string());
+                    return Ok(true);
+                }
+            } else {
+                self.goodbye = Some("No more words left to learn.".to_string());
+                return Ok(true);
+            }
+        } else {
+            for (id, word) in words.iter().enumerate() {
+                if id > 0 {
+                    self.app.text.push(' ');
+                }
+                self.app.text.push_str(&word.text);
+                if id == 0 {
+                    self.app.expected.append(&mut word.strokes.linear());
+                    self.app.text.push_str(" |");
+                }
+            }
+            if let Some(head) = words.first() {
+                self.app.head = Some(head.clone());
+            } else {
+                unreachable!();
+            }
+        }
 
         Ok(false)
     }
@@ -286,5 +303,9 @@ impl Drop for Ui {
         disable_raw_mode().unwrap();
         execute!(self.terminal.backend_mut(), LeaveAlternateScreen).unwrap();
         self.terminal.show_cursor().unwrap();
+
+        if let Some(message) = &self.goodbye {
+            println!("{}", message);
+        }
     }
 }
