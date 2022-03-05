@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0
 //! Steno stroke encoding.
 //!
 //! A (US) steno stroke consists of the following characters: #STKPWHRAO*EUFRPBLGTSDZ which can be

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0
 //! The textual ui.
 
 use crate::db::{get_now, Db, Work};

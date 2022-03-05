@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0
 //! Steno learning application.
 
 use crate::db::{Db, Work};

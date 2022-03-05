@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0
 //! Management of keyboard input.
 //!
 //! Rather than trying to implement steno protocols, we make use of Plover.  By disabling the

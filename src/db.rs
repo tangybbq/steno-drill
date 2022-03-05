@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0
 //! Learning database operations.
 
 use crate::stroke::StenoPhrase;
