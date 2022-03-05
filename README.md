@@ -92,6 +92,11 @@ cargo run -- import --db learn.db \
 will import the introduction lesson.  Each time a lesson is imported,
 those words will be added to the database.
 
+I have create my own branch of the
+[typey-type-data](https://github.com/tangybbq/typey-type-data/tree/steno-drill)
+repo where I've started making changes to make the data work a little
+better with steno-drill.
+
 ## Seeing progress
 
 At any time, you can view the progress by running the info command:
