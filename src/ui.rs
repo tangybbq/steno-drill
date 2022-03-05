@@ -1,6 +1,6 @@
 //! The textual ui.
 
-use crate::db::{Db, Work};
+use crate::db::{get_now, Db, Work};
 use crate::input::{StrokeReader, Value};
 use crate::stroke::{Stroke, StenoWord};
 use anyhow::Result;
@@ -25,6 +25,8 @@ pub struct Ui {
     reader: StrokeReader,
     db: Db,
     new: Option<usize>,
+
+    last_time: f64,
 
     // A goodbye message.
     goodbye: Option<String>,
@@ -57,6 +59,13 @@ struct App {
 
     // The database entry for the word being written, needed to update the database.
     head: Option<Work>,
+
+    // Average WPM
+    wpm: f64,
+
+    // The factor used to decay the WPM.  This is the amount of the previous value used to compute
+    // the updated WPM.  It starts at 0 and works its way up to 0.95.
+    factor: f64,
 }
 
 impl Ui {
@@ -75,6 +84,7 @@ impl Ui {
             reader,
             db,
             new,
+            last_time: get_now(),
             goodbye: None,
         })
     }
@@ -117,6 +127,8 @@ impl Ui {
 
         self.app.status.clear();
         self.app.status.push(ListItem::new(format!("words due: {}", due)));
+        self.app.status.push(ListItem::new(format!("WPM: {:.1}", self.app.wpm)));
+        self.app.status.push(ListItem::new(format!("factor: {:.4}", self.app.factor)));
 
         self.app.rstatus.clear();
         let hist = self.db.get_histogram()?;
@@ -190,6 +202,16 @@ impl Ui {
         }
 
         if self.app.expected == self.app.sofar {
+            // Update the WPM.
+            let now = get_now();
+            let new_wpm = 60.0 / (now - self.last_time);
+            self.last_time = now;
+            self.app.wpm = self.app.factor * self.app.wpm +
+                (1.0 - self.app.factor) * new_wpm;
+
+            // Adjust the factor, so it gradually increases from 0 to 0.95.
+            self.app.factor = 1.0 - ((0.95 - self.app.factor) * 0.9 + 0.05);
+
             // Written correctly, record this, and update.
             self.db.update(self.app.head.as_ref().unwrap(), self.app.corrected)?;
             self.update()

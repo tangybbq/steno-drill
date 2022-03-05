@@ -313,7 +313,7 @@ pub struct Work {
 // Epoch.  Get that time as a floating point value.  f64 up until 2037 gives 11 bits of precision
 // left for sub-seconds.  We really only need a few bits of precision beyond seconds (even seconds
 // would probably be fine).
-fn get_now() -> f64 {
+pub fn get_now() -> f64 {
     let dur = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
