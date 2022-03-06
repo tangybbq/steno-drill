@@ -102,7 +102,7 @@ impl Ui {
         })
     }
 
-    pub fn run(&mut self) -> Result<()> {
+    pub fn run(&mut self, learn_time: Option<usize>) -> Result<()> {
         if self.update()? {
             return Ok(());
         }
@@ -130,6 +130,14 @@ impl Ui {
                 })?,
                 Value::Exit => break,
                 Value::Timeout => (),
+            }
+
+            if let Some(max_time) = learn_time {
+                let now = get_now();
+                if now - self.start_time > (max_time as f64 * 60.0) {
+                    self.goodbye = Some("Lesson learn time reached".to_string());
+                    break;
+                }
             }
         }
         Ok(())

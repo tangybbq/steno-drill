@@ -74,6 +74,10 @@ struct LearnCommand {
     /// A lesson to pull new words from
     new: Option<usize>,
 
+    #[structopt(long = "time")]
+    /// Learn for the given number of minutes and exit.
+    learn_time: Option<usize>,
+
     #[structopt(long = "tui")]
     /// Enable the TUI interface (deprecated)
     #[allow(dead_code)] // Deprecated: to be removed later
@@ -96,7 +100,7 @@ fn main() -> Result<()> {
         Command::Learn(args) => {
             let db = Db::open(&args.file)?;
             let mut ui = Ui::new(db, args.new)?;
-            ui.run()?;
+            ui.run(args.learn_time)?;
         }
         Command::Import(args) => {
             let mut db = Db::open(&args.file)?;
