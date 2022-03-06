@@ -17,7 +17,13 @@ use std::collections::VecDeque;
 use crate::stroke::Stroke;
 
 pub struct StrokeReader {
+    // Character sizes for the strokes that have been seen.  Handles the case where Plover uses
+    // backspace to implement '*'.
     sizes: VecDeque<usize>,
+
+    // The characters seen so far.  In case we get resize events or timeouts interspersed with the
+    // characters of a stroke.
+    buffer: String,
 }
 
 pub enum Value {
@@ -30,14 +36,13 @@ impl StrokeReader {
     pub fn new() -> StrokeReader {
         StrokeReader {
             sizes: VecDeque::new(),
+            buffer: String::new(),
         }
     }
 
     /// Attempt to read a stroke from the input.  Returns Ok(None) when Escape is pressed, to
     /// indicate the user wishes to exit.
     pub fn read_stroke(&mut self) -> Result<Value> {
-        let mut buffer = String::new();
-
         loop {
             match event::read()? {
                 Event::Key(KeyEvent {
@@ -50,12 +55,12 @@ impl StrokeReader {
                 Event::Key(KeyEvent {
                     code: KeyCode::Char(ch),
                     ..
-                }) => buffer.push(ch),
+                }) => self.buffer.push(ch),
                 Event::Key(KeyEvent {
                     code: KeyCode::Backspace,
                     ..
                 }) => {
-                    if buffer.is_empty() {
+                    if self.buffer.is_empty() {
                         // Pop a stroke.
                         let count = if let Some(count) = self.sizes.pop_back() {
                             count
@@ -82,20 +87,20 @@ impl StrokeReader {
                     }
                 }
                 Event::Resize(x, y) => {
-                    if buffer.len() > 0 {
-                        println!("TODO: Resize during a stroke");
-                    }
                     return Ok(Value::Resize(x, y));
                 }
                 _ => (),
             }
         }
 
-        self.sizes.push_back(buffer.len() + 1);
+        self.sizes.push_back(self.buffer.len() + 1);
         while self.sizes.len() > 100 {
             _ = self.sizes.pop_front();
         }
 
-        Ok(Value::Stroke(Stroke::from_text(&buffer)?))
+        let stroke = Stroke::from_text(&self.buffer)?;
+        self.buffer.clear();
+
+        Ok(Value::Stroke(stroke))
     }
 }
