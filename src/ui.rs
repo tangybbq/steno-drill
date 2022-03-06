@@ -77,6 +77,9 @@ struct App {
 
     // Number of seconds since the drill was started.
     elapsed: usize,
+
+    // A learn time, in minutes.
+    learn_time: Option<usize>
 }
 
 impl Ui {
@@ -103,6 +106,7 @@ impl Ui {
     }
 
     pub fn run(&mut self, learn_time: Option<usize>) -> Result<()> {
+        self.app.learn_time = learn_time;
         if self.update()? {
             return Ok(());
         }
@@ -151,10 +155,18 @@ impl Ui {
         self.app.elapsed = (now - self.start_time) as usize;
 
         self.app.status.clear();
-        self.app.status.push(ListItem::new(
-                format!("Elapsed {:02}:{:02}",
-                    self.app.elapsed / 60,
-                    self.app.elapsed % 60)));
+        if let Some(limit) = self.app.learn_time {
+            self.app.status.push(ListItem::new(
+                    format!("Elapsed {:02}:{:02}/{:02}:00",
+                        self.app.elapsed / 60,
+                        self.app.elapsed % 60,
+                        limit)));
+        } else {
+            self.app.status.push(ListItem::new(
+                    format!("Elapsed {:02}:{:02}",
+                        self.app.elapsed / 60,
+                        self.app.elapsed % 60)));
+        }
         self.app.status.push(ListItem::new(format!("words due: {}", due)));
         self.app.status.push(ListItem::new(format!("new words: {}", self.app.new_words)));
         self.app.status.push(ListItem::new(format!("WPM: {:.1}", self.app.wpm)));
