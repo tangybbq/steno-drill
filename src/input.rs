@@ -13,6 +13,7 @@
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use std::collections::VecDeque;
+use std::time::Duration;
 
 use crate::stroke::Stroke;
 
@@ -29,6 +30,7 @@ pub struct StrokeReader {
 pub enum Value {
     Stroke(Stroke),
     Resize(u16, u16),
+    Timeout,
     Exit,
 }
 
@@ -41,9 +43,14 @@ impl StrokeReader {
     }
 
     /// Attempt to read a stroke from the input.  Returns Ok(None) when Escape is pressed, to
-    /// indicate the user wishes to exit.
-    pub fn read_stroke(&mut self) -> Result<Value> {
+    /// indicate the user wishes to exit.  The timeout specifies how long this should wait before
+    /// returning a Timeout.
+    pub fn read_stroke(&mut self, timeout: Duration) -> Result<Value> {
         loop {
+            if !event::poll(timeout)? {
+                return Ok(Value::Timeout);
+            }
+
             match event::read()? {
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc, ..

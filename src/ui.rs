@@ -9,7 +9,10 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{collections::VecDeque, io};
+use std::{
+    collections::VecDeque, io,
+    time::Duration,
+};
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
@@ -28,6 +31,7 @@ pub struct Ui {
     new: Option<usize>,
 
     last_time: f64,
+    start_time: f64,
 
     // A goodbye message.
     goodbye: Option<String>,
@@ -70,6 +74,9 @@ struct App {
 
     // New words that have been learned.
     new_words: usize,
+
+    // Number of seconds since the drill was started.
+    elapsed: usize,
 }
 
 impl Ui {
@@ -81,6 +88,7 @@ impl Ui {
         let terminal = Terminal::new(backend)?;
         let app = App::new();
         let reader = StrokeReader::new();
+        let now = get_now();
 
         Ok(Ui {
             terminal,
@@ -88,7 +96,8 @@ impl Ui {
             reader,
             db,
             new,
-            last_time: get_now(),
+            last_time: now,
+            start_time: now,
             goodbye: None,
         })
     }
@@ -102,7 +111,7 @@ impl Ui {
 
             self.terminal.draw(|f| self.app.render(f))?;
 
-            match self.reader.read_stroke()? {
+            match self.reader.read_stroke(Duration::from_secs(1))? {
                 Value::Stroke(stroke) => {
                     self.app.tape.push_front(stroke);
                     if self.app.tape.len() > 1000 {
@@ -120,6 +129,7 @@ impl Ui {
                     height,
                 })?,
                 Value::Exit => break,
+                Value::Timeout => (),
             }
         }
         Ok(())
@@ -129,7 +139,14 @@ impl Ui {
     fn update_status(&mut self) -> Result<()> {
         let due = self.db.get_due_count()?;
 
+        let now = get_now();
+        self.app.elapsed = (now - self.start_time) as usize;
+
         self.app.status.clear();
+        self.app.status.push(ListItem::new(
+                format!("Elapsed {:02}:{:02}",
+                    self.app.elapsed / 60,
+                    self.app.elapsed % 60)));
         self.app.status.push(ListItem::new(format!("words due: {}", due)));
         self.app.status.push(ListItem::new(format!("new words: {}", self.app.new_words)));
         self.app.status.push(ListItem::new(format!("WPM: {:.1}", self.app.wpm)));

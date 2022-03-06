@@ -8,6 +8,7 @@ use crate::ui::Ui;
 use anyhow::Result;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use std::io::Write;
+use std::time::Duration;
 use structopt::StructOpt;
 
 mod db;
@@ -224,13 +225,14 @@ fn learn_one(reader: &mut StrokeReader, work: &Work, rest: &[Work]) -> Result<Op
     loop {
         stdout.flush()?;
 
-        let stroke = match reader.read_stroke()? {
+        let stroke = match reader.read_stroke(Duration::MAX)? {
             Value::Stroke(s) => s,
             Value::Exit => {
                 println!("\r\n\nEarly exit\r");
                 return Ok(None);
             }
             Value::Resize(_, _) => continue,
+            Value::Timeout => continue,
         };
         print!("--> ");
 
