@@ -135,14 +135,6 @@ impl Ui {
                 Value::Exit => break,
                 Value::Timeout => (),
             }
-
-            if let Some(max_time) = learn_time {
-                let now = get_now();
-                if now - self.start_time > (max_time as f64 * 60.0) {
-                    self.goodbye = Some("Lesson learn time reached".to_string());
-                    break;
-                }
-            }
         }
         Ok(())
     }
@@ -257,7 +249,19 @@ impl Ui {
 
             // Written correctly, record this, and update.
             self.db.update(self.app.head.as_ref().unwrap(), self.app.corrected)?;
-            self.update()
+            if self.update()? {
+                return Ok(true);
+            }
+
+            // Check if we have reached the expired time.
+            if let Some(max_time) = self.app.learn_time {
+                let now = get_now();
+                if now - self.start_time > (max_time as f64 * 60.0) {
+                    self.goodbye = Some("Lesson learn time reached.".to_string());
+                    return Ok(true);
+                }
+            }
+            Ok(false)
         } else {
             // Check for any errors, and show a hint if that happens.
             let mut show = false;
