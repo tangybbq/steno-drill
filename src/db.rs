@@ -9,7 +9,7 @@ use std::path::Path;
 use std::time::SystemTime;
 
 /// The schema version that matches this code.  May be usable in the future for automatic upgrades.
-static SCHEMA_VERSION: &str = "2022-03-02a";
+static SCHEMA_VERSION: &str = "2022-03-06a";
 
 static SCHEMA: &[&str] = &[
     "CREATE TABLE learn (
@@ -29,6 +29,11 @@ static SCHEMA: &[&str] = &[
         listid INTEGER REFERENCES list (id) NOT NULL,
         seq INTEGER NOT NULL,
         UNIQUE (word, listid));",
+    // The history.  If 'stop' is null, then we didn't exit successfully.
+    "CREATE TABLE history (
+        entry TEXT NOT NULL,
+        start DATETIME NOT NULL,
+        stop DATETIME);",
     "CREATE TABLE schema (version TEXT NOT NULL);",
 ];
 
@@ -287,6 +292,27 @@ impl Db {
         }
 
         Ok(result)
+    }
+
+    /// Add a timestamp to the database.  Returns an ID needed to record the end stamp.
+    pub fn start_timestamp(&mut self, key: &str) -> Result<i64> {
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "INSERT INTO history (entry, start) VALUES (:entry, datetime())",
+            named_params! { ":entry": key })?;
+        let id = tx.last_insert_rowid();
+        tx.commit()?;
+        Ok(id)
+    }
+
+    pub fn stop_timestamp(&mut self, id: i64) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "UPDATE history SET stop = datetime()
+            WHERE rowid = :id",
+            named_params! { ":id": id })?;
+        tx.commit()?;
+        Ok(())
     }
 }
 

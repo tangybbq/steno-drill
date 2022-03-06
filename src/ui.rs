@@ -110,6 +110,7 @@ impl Ui {
         if self.update()? {
             return Ok(());
         }
+        let stamp_id = self.db.start_timestamp("learn")?;
         loop {
             self.update_status()?;
 
@@ -136,6 +137,7 @@ impl Ui {
                 Value::Timeout => (),
             }
         }
+        self.db.stop_timestamp(stamp_id)?;
         Ok(())
     }
 
