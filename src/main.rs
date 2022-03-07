@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 //! Steno learning application.
 
+use chrono::Local;
 use crate::db::Db;
 use crate::lessons::Lesson;
 use crate::ui::Ui;
 use anyhow::Result;
+use std::io::Write;
+use std::fs::File;
 use structopt::StructOpt;
 
 mod db;
@@ -78,6 +81,10 @@ struct LearnCommand {
     /// Learn for the given number of minutes and exit.
     learn_time: Option<usize>,
 
+    #[structopt(long = "tape")]
+    /// Append strokes in tape format to given file
+    tape_file: Option<String>,
+
     #[structopt(long = "tui")]
     /// Enable the TUI interface (deprecated)
     #[allow(dead_code)] // Deprecated: to be removed later
@@ -98,8 +105,10 @@ fn main() -> Result<()> {
 
     match opt.command {
         Command::Learn(args) => {
+            let tapefile = args.tape_file.as_ref().map(|n| open_tape_file(n)).transpose()?;
+            let tapefile = tapefile.map(|f| Box::new(f) as Box<dyn Write>);
             let db = Db::open(&args.file)?;
-            let mut ui = Ui::new(db, args.new)?;
+            let mut ui = Ui::new(db, args.new, tapefile)?;
             ui.run(args.learn_time)?;
         }
         Command::Import(args) => {
@@ -138,4 +147,11 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn open_tape_file(name: &str) -> Result<File> {
+    let mut fd = File::options().write(true).append(true).create(true).open(name)?;
+    let now = Local::now();
+    writeln!(fd, "{}", now)?;
+    Ok(fd)
 }

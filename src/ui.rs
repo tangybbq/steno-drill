@@ -11,6 +11,7 @@ use crossterm::{
 };
 use std::{
     collections::VecDeque, io,
+    io::Write,
     time::Duration,
 };
 use tui::{
@@ -35,6 +36,9 @@ pub struct Ui {
 
     // A goodbye message.
     goodbye: Option<String>,
+
+    // A possible place to record strokes.
+    tapefile: Option<Box<dyn Write>>,
 }
 
 // State of the application.
@@ -83,7 +87,7 @@ struct App {
 }
 
 impl Ui {
-    pub fn new(db: Db, new: Option<usize>) -> Result<Ui> {
+    pub fn new(db: Db, new: Option<usize>, tapefile: Option<Box<dyn Write>>) -> Result<Ui> {
         let mut stdout = io::stdout();
         enable_raw_mode()?;
         execute!(stdout, EnterAlternateScreen)?;
@@ -102,6 +106,7 @@ impl Ui {
             last_time: now,
             start_time: now,
             goodbye: None,
+            tapefile: tapefile,
         })
     }
 
@@ -121,6 +126,10 @@ impl Ui {
                     self.app.tape.push_front(stroke);
                     if self.app.tape.len() > 1000 {
                         _ = self.app.tape.pop_back();
+                    }
+
+                    if let Some(tf) = &mut self.tapefile {
+                        writeln!(tf, "{}", stroke.to_tape())?;
                     }
 
                     if self.add_stroke(stroke)? {
