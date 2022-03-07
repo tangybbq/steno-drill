@@ -132,6 +132,8 @@ fn main() -> Result<()> {
             }
             println!("------: ----");
             println!("{:6}: {}", "", hist.iter().map(|b| b.count).sum::<u64>());
+            println!("{:.1} minutes practiced",
+                db.get_minutes_practiced()?);
         }
     }
 

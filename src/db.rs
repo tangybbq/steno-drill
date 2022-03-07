@@ -314,6 +314,14 @@ impl Db {
         tx.commit()?;
         Ok(())
     }
+
+    pub fn get_minutes_practiced(&mut self) -> Result<f64> {
+        Ok(self.conn.query_row("
+            SELECT SUM(24 * 60 * (julianday(stop) - julianday(start)))
+            FROM history
+            WHERE stop IS NOT NULL", [],
+            |row| row.get(0))?)
+    }
 }
 
 /// Steno can be made as "Work" which is a linear sequence of strokes, and pieces of text that go
