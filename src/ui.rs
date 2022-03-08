@@ -199,14 +199,15 @@ impl Ui {
         self.app.corrected = 0;
         self.app.help = None;
 
+        let mut new_word = false;
         if words.is_empty() {
             if let Some(list) = self.new {
                 if let Some(work) = self.db.get_new(list)? {
                     self.app.expected.append(&mut work.strokes.linear());
                     self.app.text.push_str(&work.text);
-                    self.app.help = Some(format!("New word: {}", work.strokes));
                     self.app.head = Some(work);
                     self.app.new_words += 1;
+                    new_word = true;
                 } else {
                     self.goodbye = Some("No more words left in list.".to_string());
                     return Ok(true);
@@ -230,6 +231,14 @@ impl Ui {
                 self.app.head = Some(head.clone());
             } else {
                 unreachable!();
+            }
+        }
+
+        if let Some(work) = &self.app.head {
+            if work.interval < 90.0 {
+                self.app.help = Some(format!("{}write: {}",
+                        if new_word { "New word, " } else { "" },
+                        work.strokes));
             }
         }
 
