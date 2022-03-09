@@ -314,7 +314,7 @@ impl App {
         let left = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(10),
+                Constraint::Length(12),
                 Constraint::Length(3),
                 Constraint::Length(3),
                 Constraint::Max(70),
