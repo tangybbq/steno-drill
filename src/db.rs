@@ -9,7 +9,7 @@ use std::path::Path;
 use std::time::SystemTime;
 
 /// The schema version that matches this code.  May be usable in the future for automatic upgrades.
-static SCHEMA_VERSION: &str = "2022-03-06a";
+static SCHEMA_VERSION: &str = "2022-03-12a";
 
 static SCHEMA: &[&str] = &[
     "CREATE TABLE learn (
@@ -28,7 +28,7 @@ static SCHEMA: &[&str] = &[
         steno TEXT NOT NULL,
         listid INTEGER REFERENCES list (id) NOT NULL,
         seq INTEGER NOT NULL,
-        UNIQUE (word, listid));",
+        UNIQUE (listid, seq));",
     // The history.  If 'stop' is null, then we didn't exit successfully.
     "CREATE TABLE history (
         entry TEXT NOT NULL,
