@@ -160,7 +160,7 @@ impl Ui {
         self.app.status.clear();
         if let Some(limit) = self.app.learn_time {
             self.app.status.push(ListItem::new(
-                    format!("Elapsed {:02}:{:02}/{:02}:00",
+                    format!("Elapsed {:02}:{:02} / {:02}:00",
                         self.app.elapsed / 60,
                         self.app.elapsed % 60,
                         limit)));
