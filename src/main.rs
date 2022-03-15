@@ -75,7 +75,7 @@ struct LearnCommand {
 
     #[structopt(long = "new")]
     /// A lesson to pull new words from
-    new: Option<usize>,
+    new: Vec<usize>,
 
     #[structopt(long = "time")]
     /// Learn for the given number of minutes and exit.

@@ -4,7 +4,7 @@
 use crate::stroke::StenoPhrase;
 use crate::Lesson;
 use anyhow::{bail, Result};
-use rusqlite::{named_params, Connection, OptionalExtension};
+use rusqlite::{named_params, Connection};
 use std::path::Path;
 use std::time::SystemTime;
 
@@ -199,35 +199,70 @@ impl Db {
         )?)
     }
 
-    /// Retrieve a new word from the given list.  None indicates there is nothing left to learn on
-    /// this list.
-    pub fn get_new(&mut self, list: usize) -> Result<Option<Work>> {
-        Ok(self
-            .conn
-            .query_row(
-                "
-            SELECT word, steno
+    /// Retrieve a new word from the given lists.  When there are multiple lists, we try to work
+    /// through the lists in a somewhat balanced manner.  There are two ways this could be done. 1.
+    /// Based on how far each list has progressed, and select from the one the furthest behind, 2.
+    /// Use the progress of each list as a percentage, and select randomly based on that.
+    /// 1 has the advantage of picking a deterministic entry, but doesn't balance nicely across the
+    /// lists.  Ideally, this should return from the entries, such that all of the lists will reach
+    /// the end about the same time.  Returns None if all of the lists are empty.
+    pub fn get_new(&mut self, list: &[usize]) -> Result<Option<Work>> {
+        // Wrap all of this up in a transaction that will be rolled back when we return.  This will
+        // clean up the temp tables, which otherwise would survive through the database connection.
+        let tx = self.conn.transaction()?;
+
+        // The finder table is our lists to search for.
+        tx.execute("CREATE TEMP TABLE finder (listid INTEGER REFERENCES list(id) NOT NULL)", [])?;
+        for id in list {
+            tx.execute("INSERT INTO finder VALUES (:id)",
+                named_params!{ ":id": id })?;
+        }
+
+        // The minmax table caches the min and max values.  This is probably not needed because we
+        // are only querying grouped results, but it does work.
+        tx.execute("CREATE TEMP TABLE minmax AS
+            SELECT listid, MIN(seq) AS seqmin, MAX(seq) AS seqmax
             FROM lesson
-            WHERE
-                lesson.listid = :list AND
+            WHERE lesson.word NOT IN (SELECT word FROM learn)
+            GROUP BY listid", [])?;
+
+        let mut stmt = tx.prepare(
+            "SELECT word, steno, CAST (seq AS FLOAT) / seqmax
+            FROM lesson, minmax
+            WHERE lesson.listid IN finder AND
+                lesson.listid = minmax.listid AND
                 lesson.word NOT IN (SELECT word FROM learn)
-            ORDER BY seq
-            LIMIT 1",
-                named_params! {
-                    ":list": list,
-                },
-                |row| {
-                    let steno: String = row.get(1)?;
-                    Ok(Work {
-                        text: row.get(0)?,
-                        strokes: StenoPhrase::parse(&steno).unwrap(),
-                        goods: 0,
-                        interval: 3.0,
-                        next: 0.0,
-                    })
-                },
-            )
-            .optional()?)
+            GROUP BY lesson.listid
+            ORDER BY seq")?;
+        let works: Vec<_> = stmt.query_map([], |row| {
+            let steno: String = row.get(1)?;
+            Ok(Minmax {
+                word: row.get(0)?,
+                steno: StenoPhrase::parse(&steno).unwrap(),
+                progress: row.get(2)?,
+            })})?.collect();
+        let works: rusqlite::Result<Vec<Minmax>> = works.into_iter().collect();
+        let works = works?;
+
+        let mut prog = 0.0f64;
+        let pos = rand::random::<f64>();
+
+        // Select among the words, randomly based on amount of progress through the lists.
+        let total: f64 = works.iter().map(|w| w.progress).sum();
+
+        for w in works {
+            prog += w.progress;
+            if pos * total <= prog {
+                return Ok(Some(Work {
+                    text: w.word,
+                    strokes: w.steno,
+                    goods: 0,
+                    interval: 3.0,
+                    next: 0.0,
+                }));
+            }
+        }
+        Ok(None)
     }
 
     /// Update the given work in the database.  `corrections` is the number of corrections the user
@@ -336,6 +371,14 @@ pub struct Work {
     pub interval: f64,
     pub next: f64,
     // pub items: Vec<WorkItem>,
+}
+
+/// Query results for getting work to do.
+#[derive(Debug)]
+struct Minmax {
+    word: String,
+    steno: StenoPhrase,
+    progress: f64,
 }
 
 // #[derive(Debug)]

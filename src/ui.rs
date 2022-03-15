@@ -29,7 +29,7 @@ pub struct Ui {
     app: App,
     reader: StrokeReader,
     db: Db,
-    new: Option<usize>,
+    new: Vec<usize>,
 
     last_time: f64,
     start_time: f64,
@@ -87,7 +87,7 @@ struct App {
 }
 
 impl Ui {
-    pub fn new(db: Db, new: Option<usize>, tapefile: Option<Box<dyn Write>>) -> Result<Ui> {
+    pub fn new(db: Db, new: Vec<usize>, tapefile: Option<Box<dyn Write>>) -> Result<Ui> {
         let mut stdout = io::stdout();
         enable_raw_mode()?;
         execute!(stdout, EnterAlternateScreen)?;
@@ -201,8 +201,8 @@ impl Ui {
 
         let mut new_word = false;
         if words.is_empty() {
-            if let Some(list) = self.new {
-                if let Some(work) = self.db.get_new(list)? {
+            if !self.new.is_empty() {
+                if let Some(work) = self.db.get_new(&self.new)? {
                     self.app.expected.append(&mut work.strokes.linear());
                     self.app.text.push_str(&work.text);
                     self.app.head = Some(work);
