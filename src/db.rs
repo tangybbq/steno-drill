@@ -4,6 +4,7 @@
 use crate::stroke::StenoPhrase;
 use crate::Lesson;
 use anyhow::{bail, Result};
+use log::info;
 use rusqlite::{named_params, Connection};
 use std::path::Path;
 use std::time::SystemTime;
@@ -250,8 +251,14 @@ impl Db {
         // Select among the words, randomly based on amount of progress through the lists.
         let total: f64 = works.iter().map(|w| w.progress).sum();
 
+        info!("new word: prog={}, pos={}, total={}", prog, pos, total);
+        for w in &works {
+            info!("  work: {:?}", w);
+        }
+
         for w in works {
             prog += w.progress;
+            info!("check: prog={}, w={:?}", prog, w);
             if pos * total <= prog {
                 return Ok(Some(Work {
                     text: w.word,

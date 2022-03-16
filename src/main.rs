@@ -6,6 +6,7 @@ use crate::db::Db;
 use crate::lessons::Lesson;
 use crate::ui::Ui;
 use anyhow::Result;
+use log::info;
 use std::io::Write;
 use std::fs::File;
 use structopt::StructOpt;
@@ -99,12 +100,17 @@ struct Opt {
 }
 
 fn main() -> Result<()> {
+    // TODO: Wrap the logger with one that, when in UI mode, logs to a section rather than spewing.
+    // For now, expect that the program will be run with 2>logfile.
+    env_logger::init();
+
     let opt = Opt::from_args();
     // println!("command: {:?}", opt);
     // let mut stdout = io::stdout();
 
     match opt.command {
         Command::Learn(args) => {
+            info!("Starting learn mode");
             let tapefile = args.tape_file.as_ref().map(|n| open_tape_file(n)).transpose()?;
             let tapefile = tapefile.map(|f| Box::new(f) as Box<dyn Write>);
             let db = Db::open(&args.file)?;
