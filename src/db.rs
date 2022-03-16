@@ -228,7 +228,8 @@ impl Db {
             GROUP BY listid", [])?;
 
         let mut stmt = tx.prepare(
-            "SELECT word, steno, CAST (seqmax - seq AS FLOAT) / (seqmax + 1)
+            "SELECT word, steno,
+                seqmax - seq + 1
             FROM lesson, minmax
             WHERE lesson.listid IN finder AND
                 lesson.listid = minmax.listid AND
