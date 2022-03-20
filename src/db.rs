@@ -141,10 +141,11 @@ impl Db {
                 continue;
             }
             println!(
-                "  {:2}. {:5}/{:<5}:{} {}",
+                "  {:2}. {:5}/{:<5} ({:5}): {}{}",
                 row.id,
                 row.num,
                 row.total,
+                row.total - row.num,
                 if row.num == row.total { '✓' } else { ' ' },
                 row.name
             );
