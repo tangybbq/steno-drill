@@ -3,9 +3,11 @@
 
 use crate::stroke::StenoPhrase;
 use crate::Lesson;
+use crate::ui::NewList;
 use anyhow::{bail, Result};
 use log::info;
 use rusqlite::{named_params, Connection};
+use std::collections::HashMap;
 use std::path::Path;
 use std::time::SystemTime;
 
@@ -208,7 +210,7 @@ impl Db {
     /// 1 has the advantage of picking a deterministic entry, but doesn't balance nicely across the
     /// lists.  Ideally, this should return from the entries, such that all of the lists will reach
     /// the end about the same time.  Returns None if all of the lists are empty.
-    pub fn get_new(&mut self, list: &[usize]) -> Result<Option<Work>> {
+    pub fn get_new(&mut self, list: &[NewList]) -> Result<Option<Work>> {
         // Wrap all of this up in a transaction that will be rolled back when we return.  This will
         // clean up the temp tables, which otherwise would survive through the database connection.
         let tx = self.conn.transaction()?;
@@ -217,7 +219,7 @@ impl Db {
         tx.execute("CREATE TEMP TABLE finder (listid INTEGER REFERENCES list(id) NOT NULL)", [])?;
         for id in list {
             tx.execute("INSERT INTO finder VALUES (:id)",
-                named_params!{ ":id": id })?;
+                named_params!{ ":id": id.list })?;
         }
 
         // The minmax table caches the min and max values.  This is probably not needed because we
@@ -230,7 +232,8 @@ impl Db {
 
         let mut stmt = tx.prepare(
             "SELECT word, steno,
-                seqmax - seq + 1
+                seqmax - seq + 1,
+                lesson.listid
             FROM lesson, minmax
             WHERE lesson.listid IN finder AND
                 lesson.listid = minmax.listid AND
@@ -243,12 +246,20 @@ impl Db {
                 word: row.get(0)?,
                 steno: StenoPhrase::parse(&steno).unwrap(),
                 progress: row.get(2)?,
+                listid: row.get(3)?,
             })})?.collect();
         let works: rusqlite::Result<Vec<Minmax>> = works.into_iter().collect();
-        let works = works?;
+        let mut works = works?;
 
         let mut prog = 0.0f64;
         let pos = rand::random::<f64>();
+
+        // Adjust all of the returned factors by the UI mult factors.
+        let factors: HashMap<usize, f64> = list.iter().map(|n| (n.list, n.factor)).collect();
+
+        for work in &mut works {
+            work.progress += factors[&work.listid];
+        }
 
         // Select among the words, randomly based on amount of progress through the lists.
         let total: f64 = works.iter().map(|w| w.progress).sum();
@@ -388,6 +399,7 @@ struct Minmax {
     word: String,
     steno: StenoPhrase,
     progress: f64,
+    listid: usize,
 }
 
 // #[derive(Debug)]

@@ -4,7 +4,7 @@
 use chrono::Local;
 use crate::db::Db;
 use crate::lessons::Lesson;
-use crate::ui::Ui;
+use crate::ui::{NewList, Ui};
 use anyhow::Result;
 use log::info;
 use std::io::Write;
@@ -76,7 +76,7 @@ struct LearnCommand {
 
     #[structopt(long = "new")]
     /// A lesson to pull new words from
-    new: Vec<usize>,
+    new: Vec<NewList>,
 
     #[structopt(long = "time")]
     /// Learn for the given number of minutes and exit.

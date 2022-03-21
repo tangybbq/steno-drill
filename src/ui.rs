@@ -29,7 +29,7 @@ pub struct Ui {
     app: App,
     reader: StrokeReader,
     db: Db,
-    new: Vec<usize>,
+    new: Vec<NewList>,
 
     last_time: f64,
     start_time: f64,
@@ -87,7 +87,7 @@ struct App {
 }
 
 impl Ui {
-    pub fn new(db: Db, new: Vec<usize>, tapefile: Option<Box<dyn Write>>) -> Result<Ui> {
+    pub fn new(db: Db, new: Vec<NewList>, tapefile: Option<Box<dyn Write>>) -> Result<Ui> {
         let mut stdout = io::stdout();
         enable_raw_mode()?;
         execute!(stdout, EnterAlternateScreen)?;
@@ -396,5 +396,24 @@ impl Drop for Ui {
         if let Some(message) = &self.goodbye {
             println!("{}", message);
         }
+    }
+}
+
+/// New words have a list ID associated with a multiplication factor to bias toward certain lists.
+#[derive(Debug)]
+pub struct NewList {
+    pub list: usize,
+    pub factor: f64,
+}
+
+// Implement so it can be used from the UI.  We accept either a single integer, or an int:float
+// pair.  The factor will be '0' if not specified.
+impl std::str::FromStr for NewList {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<NewList> {
+        let fields: Vec<_> = s.splitn(2, ':').collect();
+        let list: usize = fields[0].parse()?;
+        let factor: f64 = fields.get(1).map(|f| f.parse()).unwrap_or(Ok(0.0))?;
+        Ok(NewList { list, factor })
     }
 }
