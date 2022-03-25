@@ -83,7 +83,10 @@ struct App {
     elapsed: usize,
 
     // A learn time, in minutes.
-    learn_time: Option<usize>
+    learn_time: Option<usize>,
+
+    // The time this invocation was started (needed to show the display).
+    start_time: f64,
 }
 
 impl Ui {
@@ -93,9 +96,9 @@ impl Ui {
         execute!(stdout, EnterAlternateScreen)?;
         let backend = CrosstermBackend::new(stdout);
         let terminal = Terminal::new(backend)?;
-        let app = App::new();
-        let reader = StrokeReader::new();
         let now = get_now();
+        let app = App::new(now);
+        let reader = StrokeReader::new();
 
         Ok(Ui {
             terminal,
@@ -117,7 +120,7 @@ impl Ui {
         }
         let stamp_id = self.db.start_timestamp("learn")?;
         loop {
-            self.update_status()?;
+            self.app.update_status(&mut self.db)?;
 
             self.terminal.draw(|f| self.app.render(f))?;
 
@@ -144,45 +147,6 @@ impl Ui {
             }
         }
         self.db.stop_timestamp(stamp_id)?;
-        Ok(())
-    }
-
-    // Update the status, based on the information from the database.
-    fn update_status(&mut self) -> Result<()> {
-        let due = self.db.get_due_count()?;
-
-        let now = get_now();
-        self.app.elapsed = (now - self.start_time) as usize;
-
-        self.app.status.clear();
-        if let Some(limit) = self.app.learn_time {
-            self.app.status.push(ListItem::new(
-                    format!("Elapsed {:02}:{:02} / {:02}:00",
-                        self.app.elapsed / 60,
-                        self.app.elapsed % 60,
-                        limit)));
-        } else {
-            self.app.status.push(ListItem::new(
-                    format!("Elapsed {:02}:{:02}",
-                        self.app.elapsed / 60,
-                        self.app.elapsed % 60)));
-        }
-        self.app.status.push(ListItem::new(format!("words due: {}", due)));
-        self.app.status.push(ListItem::new(format!("new words: {}", self.app.new_words)));
-        self.app.status.push(ListItem::new(format!("WPM: {:.1}", self.app.wpm)));
-        // self.app.status.push(ListItem::new(format!("factor: {:.4}", self.app.factor)));
-
-        self.app.rstatus.clear();
-        let hist = self.db.get_histogram()?;
-        for bucket in &hist {
-            if bucket.count > 0 {
-                self.app.rstatus.push(
-                    ListItem::new(format!("{:6}: {}", bucket.name, bucket.count)));
-            }
-        }
-        self.app.rstatus.push(
-            ListItem::new(format!("total : {}", hist.iter().map(|b| b.count).sum::<u64>())));
-
         Ok(())
     }
 
@@ -298,8 +262,11 @@ impl Ui {
 }
 
 impl App {
-    fn new() -> App {
-        App::default()
+    fn new(start_time: f64) -> App {
+        App {
+            start_time,
+            ..App::default()
+        }
     }
 
     /// Add a new stroke to this app.
@@ -309,6 +276,45 @@ impl App {
         if self.tape.len() > 1000 {
             _ = self.tape.pop_back();
         }
+
+        Ok(())
+    }
+
+    /// Update the status of the app, based on information from the database.
+    fn update_status(&mut self, db: &mut Db) -> Result<()> {
+        let due = db.get_due_count()?;
+
+        let now = get_now();
+        self.elapsed = (now - self.start_time) as usize;
+
+        self.status.clear();
+        if let Some(limit) = self.learn_time {
+            self.status.push(ListItem::new(
+                    format!("Elapsed {:02}:{:02} / {:02}:00",
+                        self.elapsed / 60,
+                        self.elapsed % 60,
+                        limit)));
+        } else {
+            self.status.push(ListItem::new(
+                    format!("Elapsed {:02}:{:02}",
+                        self.elapsed / 60,
+                        self.elapsed % 60)));
+        }
+        self.status.push(ListItem::new(format!("words due: {}", due)));
+        self.status.push(ListItem::new(format!("new words: {}", self.new_words)));
+        self.status.push(ListItem::new(format!("WPM: {:.1}", self.wpm)));
+        // self.app.status.push(ListItem::new(format!("factor: {:.4}", self.app.factor)));
+
+        self.rstatus.clear();
+        let hist = db.get_histogram()?;
+        for bucket in &hist {
+            if bucket.count > 0 {
+                self.rstatus.push(
+                    ListItem::new(format!("{:6}: {}", bucket.name, bucket.count)));
+            }
+        }
+        self.rstatus.push(
+            ListItem::new(format!("total : {}", hist.iter().map(|b| b.count).sum::<u64>())));
 
         Ok(())
     }
