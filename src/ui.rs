@@ -122,13 +122,11 @@ impl Ui {
 
             match self.reader.read_stroke(Duration::from_secs(1))? {
                 Value::Stroke(stroke) => {
-                    self.app.add_stroke(stroke)?;
-
                     if let Some(tf) = &mut self.tapefile {
                         writeln!(tf, "{}", stroke.to_tape())?;
                     }
 
-                    if self.add_stroke(stroke)? {
+                    if self.app.add_stroke(stroke, &mut self.db)? {
                         break;
                     }
                 }
@@ -145,60 +143,6 @@ impl Ui {
         self.db.stop_timestamp(stamp_id)?;
         Ok(())
     }
-
-    // Add a single stroke that the user has written.  If it matches, will call 'update' to
-    // move to the next thing to write.  Otherwise, status will remain, showing the user any
-    // errors.  Will return Ok(true) if we have run out of things to do.
-    fn add_stroke(&mut self, stroke: Stroke) -> Result<bool> {
-        if stroke.is_star() {
-            _ = self.app.sofar.pop();
-            self.app.corrected += 1;
-        } else {
-            self.app.sofar.push(stroke);
-        }
-
-        if self.app.expected == self.app.sofar {
-            // Update the WPM.
-            let now = get_now();
-            let new_wpm = 60.0 / (now - self.app.last_time);
-            self.app.last_time = now;
-            self.app.wpm = self.app.factor * self.app.wpm +
-                (1.0 - self.app.factor) * new_wpm;
-
-            // Adjust the factor, so it gradually increases from 0 to 0.95.
-            self.app.factor = 1.0 - ((0.95 - self.app.factor) * 0.9 + 0.05);
-
-            // Written correctly, record this, and update.
-            self.db.update(self.app.head.as_ref().unwrap(), self.app.corrected)?;
-            if self.app.update(&mut self.db)? {
-                return Ok(true);
-            }
-
-            // Check if we have reached the expired time.
-            if let Some(max_time) = self.app.learn_time {
-                let now = get_now();
-                if now - self.app.start_time > (max_time as f64 * 60.0) {
-                    self.app.goodbye = Some("Lesson learn time reached.".to_string());
-                    return Ok(true);
-                }
-            }
-            Ok(false)
-        } else {
-            // Check for any errors, and show a hint if that happens.
-            let mut show = false;
-            for (&a, &b) in self.app.expected.iter().zip(&self.app.sofar) {
-                if a != b {
-                    show = true;
-                }
-
-                if show {
-                    let strokes = StenoWord(self.app.expected.clone());
-                    self.app.help = Some(format!("Should be written as {}", strokes));
-                }
-            }
-            Ok(false)
-        }
-    }
 }
 
 impl App {
@@ -209,17 +153,6 @@ impl App {
             new,
             ..App::default()
         }
-    }
-
-    /// Add a new stroke to this app.
-    fn add_stroke(&mut self, stroke: Stroke) -> Result<()> {
-        // Push to the end, and remove any sufficiently far behind.
-        self.tape.push_front(stroke);
-        if self.tape.len() > 1000 {
-            _ = self.tape.pop_back();
-        }
-
-        Ok(())
     }
 
     /// Update the status of the app, based on information from the database.
@@ -315,6 +248,67 @@ impl App {
         }
 
         Ok(false)
+    }
+
+    /// Add a single stroke that the user has written.  If it matches, will call 'update' to
+    /// move to the next thing to write.  Otherwise, status will remain, showing the user any
+    /// errors.  Will return Ok(true) if we have run out of things to do.
+    fn add_stroke(&mut self, stroke: Stroke, db: &mut Db) -> Result<bool> {
+        // The tape always records the strokes, as written.  Store in the tape before any kind of
+        // processing.
+        self.tape.push_front(stroke);
+        if self.tape.len() > 1000 {
+            _ = self.tape.pop_back();
+        }
+
+        if stroke.is_star() {
+            _ = self.sofar.pop();
+            self.corrected += 1;
+        } else {
+            self.sofar.push(stroke);
+        }
+
+        if self.expected == self.sofar {
+            // Update the WPM.
+            let now = get_now();
+            let new_wpm = 60.0 / (now - self.last_time);
+            self.last_time = now;
+            self.wpm = self.factor * self.wpm +
+                (1.0 - self.factor) * new_wpm;
+
+            // Adjust the factor, so it gradually increases from 0 to 0.95.
+            self.factor = 1.0 - ((0.95 - self.factor) * 0.9 + 0.05);
+
+            // Written correctly, record this, and update.
+            db.update(self.head.as_ref().unwrap(), self.corrected)?;
+            if self.update(db)? {
+                return Ok(true);
+            }
+
+            // Check if we have reached the expired time.
+            if let Some(max_time) = self.learn_time {
+                let now = get_now();
+                if now - self.start_time > (max_time as f64 * 60.0) {
+                    self.goodbye = Some("Lesson learn time reached.".to_string());
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        } else {
+            // Check for any errors, and show a hint if that happens.
+            let mut show = false;
+            for (&a, &b) in self.expected.iter().zip(&self.sofar) {
+                if a != b {
+                    show = true;
+                }
+
+                if show {
+                    let strokes = StenoWord(self.expected.clone());
+                    self.help = Some(format!("Should be written as {}", strokes));
+                }
+            }
+            Ok(false)
+        }
     }
 
     fn render<B: Backend>(&mut self, f: &mut Frame<B>) {
