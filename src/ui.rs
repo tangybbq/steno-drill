@@ -15,7 +15,7 @@ use std::{
     time::Duration,
 };
 use tui::{
-    backend::{Backend, CrosstermBackend},
+    backend::{CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     terminal::Frame,
@@ -24,9 +24,11 @@ use tui::{
     Terminal,
 };
 
+type UiBackend = CrosstermBackend<std::io::Stdout>;
+
 pub struct Ui {
-    terminal: Terminal<CrosstermBackend<io::Stdout>>,
-    app: App,
+    terminal: Terminal<UiBackend>,
+    app: Box<dyn App>,
     reader: StrokeReader,
     db: Db,
 
@@ -34,9 +36,21 @@ pub struct Ui {
     tapefile: Option<Box<dyn Write>>,
 }
 
+/// The application is controlled via this trait.
+trait App {
+    fn update_status(&mut self, db: &mut Db) -> Result<()>;
+    fn update(&mut self, db: &mut Db) -> Result<bool>;
+    fn add_stroke(&mut self, stroke: Stroke, db: &mut Db) -> Result<bool>;
+
+    fn set_learntime(&mut self, learn_time: Option<usize>);
+    fn goodbye_ref(&self) -> Option<&str>;
+
+    fn render(&mut self, f: &mut Frame<UiBackend>);
+}
+
 // State of the application.
 #[derive(Default)]
-struct App {
+struct LearnApp {
     // The lists to get new entries from.
     new: Vec<NewList>,
 
@@ -97,12 +111,12 @@ impl Ui {
         let backend = CrosstermBackend::new(stdout);
         let terminal = Terminal::new(backend)?;
         let now = get_now();
-        let app = App::new(now, new);
+        let app = LearnApp::new(now, new);
         let reader = StrokeReader::new();
 
         Ok(Ui {
             terminal,
-            app,
+            app: Box::new(app),
             reader,
             db,
             tapefile: tapefile,
@@ -110,7 +124,7 @@ impl Ui {
     }
 
     pub fn run(&mut self, learn_time: Option<usize>) -> Result<()> {
-        self.app.learn_time = learn_time;
+        self.app.set_learntime(learn_time);
         if self.app.update(&mut self.db)? {
             return Ok(());
         }
@@ -145,14 +159,24 @@ impl Ui {
     }
 }
 
-impl App {
-    fn new(start_time: f64, new: Vec<NewList>) -> App {
-        App {
+impl LearnApp {
+    fn new(start_time: f64, new: Vec<NewList>) -> LearnApp {
+        LearnApp {
             start_time,
             last_time: start_time,
             new,
-            ..App::default()
+            ..LearnApp::default()
         }
+    }
+}
+
+impl App for LearnApp {
+    fn set_learntime(&mut self, learn_time: Option<usize>) {
+        self.learn_time = learn_time;
+    }
+
+    fn goodbye_ref(&self) -> Option<&str> {
+        self.goodbye.as_deref()
     }
 
     /// Update the status of the app, based on information from the database.
@@ -311,7 +335,7 @@ impl App {
         }
     }
 
-    fn render<B: Backend>(&mut self, f: &mut Frame<B>) {
+    fn render(&mut self, f: &mut Frame<UiBackend>) {
         let top = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Min(45), Constraint::Length(25)].as_ref())
@@ -399,7 +423,7 @@ impl Drop for Ui {
         execute!(self.terminal.backend_mut(), LeaveAlternateScreen).unwrap();
         self.terminal.show_cursor().unwrap();
 
-        if let Some(message) = &self.app.goodbye {
+        if let Some(message) = self.app.goodbye_ref() {
             println!("{}", message);
         }
     }
