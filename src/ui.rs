@@ -123,10 +123,7 @@ impl Ui {
 
             match self.reader.read_stroke(Duration::from_secs(1))? {
                 Value::Stroke(stroke) => {
-                    self.app.tape.push_front(stroke);
-                    if self.app.tape.len() > 1000 {
-                        _ = self.app.tape.pop_back();
-                    }
+                    self.app.add_stroke(stroke)?;
 
                     if let Some(tf) = &mut self.tapefile {
                         writeln!(tf, "{}", stroke.to_tape())?;
@@ -303,6 +300,17 @@ impl Ui {
 impl App {
     fn new() -> App {
         App::default()
+    }
+
+    /// Add a new stroke to this app.
+    fn add_stroke(&mut self, stroke: Stroke) -> Result<()> {
+        // Push to the end, and remove any sufficiently far behind.
+        self.tape.push_front(stroke);
+        if self.tape.len() > 1000 {
+            _ = self.tape.pop_back();
+        }
+
+        Ok(())
     }
 
     fn render<B: Backend>(&mut self, f: &mut Frame<B>) {
