@@ -30,9 +30,6 @@ pub struct Ui {
     reader: StrokeReader,
     db: Db,
 
-    last_time: f64,
-    start_time: f64,
-
     // A possible place to record strokes.
     tapefile: Option<Box<dyn Write>>,
 }
@@ -86,6 +83,7 @@ struct App {
 
     // The time this invocation was started (needed to show the display).
     start_time: f64,
+    last_time: f64,
 
     // A goodbye message.
     goodbye: Option<String>,
@@ -107,8 +105,6 @@ impl Ui {
             app,
             reader,
             db,
-            last_time: now,
-            start_time: now,
             tapefile: tapefile,
         })
     }
@@ -164,8 +160,8 @@ impl Ui {
         if self.app.expected == self.app.sofar {
             // Update the WPM.
             let now = get_now();
-            let new_wpm = 60.0 / (now - self.last_time);
-            self.last_time = now;
+            let new_wpm = 60.0 / (now - self.app.last_time);
+            self.app.last_time = now;
             self.app.wpm = self.app.factor * self.app.wpm +
                 (1.0 - self.app.factor) * new_wpm;
 
@@ -181,7 +177,7 @@ impl Ui {
             // Check if we have reached the expired time.
             if let Some(max_time) = self.app.learn_time {
                 let now = get_now();
-                if now - self.start_time > (max_time as f64 * 60.0) {
+                if now - self.app.start_time > (max_time as f64 * 60.0) {
                     self.app.goodbye = Some("Lesson learn time reached.".to_string());
                     return Ok(true);
                 }
@@ -209,6 +205,7 @@ impl App {
     fn new(start_time: f64, new: Vec<NewList>) -> App {
         App {
             start_time,
+            last_time: start_time,
             new,
             ..App::default()
         }
