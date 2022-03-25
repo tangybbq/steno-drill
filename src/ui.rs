@@ -29,13 +29,9 @@ pub struct Ui {
     app: App,
     reader: StrokeReader,
     db: Db,
-    new: Vec<NewList>,
 
     last_time: f64,
     start_time: f64,
-
-    // A goodbye message.
-    goodbye: Option<String>,
 
     // A possible place to record strokes.
     tapefile: Option<Box<dyn Write>>,
@@ -44,6 +40,9 @@ pub struct Ui {
 // State of the application.
 #[derive(Default)]
 struct App {
+    // The lists to get new entries from.
+    new: Vec<NewList>,
+
     // The tape represents everything stroked, as a tape from the steno machine would look.
     // New entries are pushed to the front.
     tape: VecDeque<Stroke>,
@@ -87,6 +86,9 @@ struct App {
 
     // The time this invocation was started (needed to show the display).
     start_time: f64,
+
+    // A goodbye message.
+    goodbye: Option<String>,
 }
 
 impl Ui {
@@ -97,7 +99,7 @@ impl Ui {
         let backend = CrosstermBackend::new(stdout);
         let terminal = Terminal::new(backend)?;
         let now = get_now();
-        let app = App::new(now);
+        let app = App::new(now, new);
         let reader = StrokeReader::new();
 
         Ok(Ui {
@@ -105,17 +107,15 @@ impl Ui {
             app,
             reader,
             db,
-            new,
             last_time: now,
             start_time: now,
-            goodbye: None,
             tapefile: tapefile,
         })
     }
 
     pub fn run(&mut self, learn_time: Option<usize>) -> Result<()> {
         self.app.learn_time = learn_time;
-        if self.update()? {
+        if self.app.update(&mut self.db)? {
             return Ok(());
         }
         let stamp_id = self.db.start_timestamp("learn")?;
@@ -150,62 +150,6 @@ impl Ui {
         Ok(())
     }
 
-    // Update the app with the current progress.  Returns true if we should exit.
-    fn update(&mut self) -> Result<bool> {
-        let words = self.db.get_drills(20)?;
-
-        self.app.text.clear();
-        self.app.sofar.clear();
-        self.app.expected.clear();
-        self.app.corrected = 0;
-        self.app.help = None;
-
-        let mut new_word = false;
-        if words.is_empty() {
-            if !self.new.is_empty() {
-                if let Some(work) = self.db.get_new(&self.new)? {
-                    self.app.expected.append(&mut work.strokes.linear());
-                    self.app.text.push_str(&work.text);
-                    self.app.head = Some(work);
-                    self.app.new_words += 1;
-                    new_word = true;
-                } else {
-                    self.goodbye = Some("No more words left in list.".to_string());
-                    return Ok(true);
-                }
-            } else {
-                self.goodbye = Some("No more words left to learn.".to_string());
-                return Ok(true);
-            }
-        } else {
-            for (id, word) in words.iter().enumerate() {
-                if id > 0 {
-                    self.app.text.push(' ');
-                }
-                self.app.text.push_str(&word.text);
-                if id == 0 {
-                    self.app.expected.append(&mut word.strokes.linear());
-                    self.app.text.push_str(" |");
-                }
-            }
-            if let Some(head) = words.first() {
-                self.app.head = Some(head.clone());
-            } else {
-                unreachable!();
-            }
-        }
-
-        if let Some(work) = &self.app.head {
-            if work.interval < 90.0 {
-                self.app.help = Some(format!("{}write: {}",
-                        if new_word { "New word, " } else { "" },
-                        work.strokes));
-            }
-        }
-
-        Ok(false)
-    }
-
     // Add a single stroke that the user has written.  If it matches, will call 'update' to
     // move to the next thing to write.  Otherwise, status will remain, showing the user any
     // errors.  Will return Ok(true) if we have run out of things to do.
@@ -230,7 +174,7 @@ impl Ui {
 
             // Written correctly, record this, and update.
             self.db.update(self.app.head.as_ref().unwrap(), self.app.corrected)?;
-            if self.update()? {
+            if self.app.update(&mut self.db)? {
                 return Ok(true);
             }
 
@@ -238,7 +182,7 @@ impl Ui {
             if let Some(max_time) = self.app.learn_time {
                 let now = get_now();
                 if now - self.start_time > (max_time as f64 * 60.0) {
-                    self.goodbye = Some("Lesson learn time reached.".to_string());
+                    self.app.goodbye = Some("Lesson learn time reached.".to_string());
                     return Ok(true);
                 }
             }
@@ -262,9 +206,10 @@ impl Ui {
 }
 
 impl App {
-    fn new(start_time: f64) -> App {
+    fn new(start_time: f64, new: Vec<NewList>) -> App {
         App {
             start_time,
+            new,
             ..App::default()
         }
     }
@@ -317,6 +262,62 @@ impl App {
             ListItem::new(format!("total : {}", hist.iter().map(|b| b.count).sum::<u64>())));
 
         Ok(())
+    }
+
+    // Update the app with the current progress.  Returns true if we should exit.
+    fn update(&mut self, db: &mut Db) -> Result<bool> {
+        let words = db.get_drills(20)?;
+
+        self.text.clear();
+        self.sofar.clear();
+        self.expected.clear();
+        self.corrected = 0;
+        self.help = None;
+
+        let mut new_word = false;
+        if words.is_empty() {
+            if !self.new.is_empty() {
+                if let Some(work) = db.get_new(&self.new)? {
+                    self.expected.append(&mut work.strokes.linear());
+                    self.text.push_str(&work.text);
+                    self.head = Some(work);
+                    self.new_words += 1;
+                    new_word = true;
+                } else {
+                    self.goodbye = Some("No more words left in list.".to_string());
+                    return Ok(true);
+                }
+            } else {
+                self.goodbye = Some("No more words left to learn.".to_string());
+                return Ok(true);
+            }
+        } else {
+            for (id, word) in words.iter().enumerate() {
+                if id > 0 {
+                    self.text.push(' ');
+                }
+                self.text.push_str(&word.text);
+                if id == 0 {
+                    self.expected.append(&mut word.strokes.linear());
+                    self.text.push_str(" |");
+                }
+            }
+            if let Some(head) = words.first() {
+                self.head = Some(head.clone());
+            } else {
+                unreachable!();
+            }
+        }
+
+        if let Some(work) = &self.head {
+            if work.interval < 90.0 {
+                self.help = Some(format!("{}write: {}",
+                        if new_word { "New word, " } else { "" },
+                        work.strokes));
+            }
+        }
+
+        Ok(false)
     }
 
     fn render<B: Backend>(&mut self, f: &mut Frame<B>) {
@@ -407,7 +408,7 @@ impl Drop for Ui {
         execute!(self.terminal.backend_mut(), LeaveAlternateScreen).unwrap();
         self.terminal.show_cursor().unwrap();
 
-        if let Some(message) = &self.goodbye {
+        if let Some(message) = &self.app.goodbye {
             println!("{}", message);
         }
     }
