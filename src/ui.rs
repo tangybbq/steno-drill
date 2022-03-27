@@ -20,8 +20,10 @@ use tui::{
     Terminal,
 };
 
+pub use drill::DrillApp;
 pub use learn::LearnApp;
 
+mod drill;
 mod learn;
 
 type UiBackend = CrosstermBackend<std::io::Stdout>;

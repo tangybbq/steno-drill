@@ -4,7 +4,7 @@
 use chrono::Local;
 use crate::db::Db;
 use crate::lessons::Lesson;
-use crate::ui::{LearnApp, NewList, Ui};
+use crate::ui::{DrillApp, LearnApp, NewList, Ui};
 use anyhow::Result;
 use log::info;
 use std::io::Write;
@@ -22,6 +22,10 @@ enum Command {
     #[structopt(name = "learn")]
     /// Learn and reinforce vocabulary.
     Learn(LearnCommand),
+
+    #[structopt(name = "drill")]
+    /// Drill a single list.
+    Drill(DrillCommand),
 
     #[structopt(name = "import")]
     /// Import wordlists to be learned.
@@ -93,6 +97,25 @@ struct LearnCommand {
 }
 
 #[derive(Debug, StructOpt)]
+struct DrillCommand {
+    #[structopt(long = "db")]
+    /// The pathname of the learning database.
+    file: String,
+
+    #[structopt(long = "list")]
+    /// The lesson to drill.
+    list: usize,
+
+    #[structopt(long = "repeat")]
+    /// The number of repetitions to drill.
+    repeat: Option<usize>,
+
+    #[structopt(long = "tape")]
+    /// Append strokes in tape format to given file
+    tape_file: Option<String>,
+}
+
+#[derive(Debug, StructOpt)]
 #[structopt(name = "sdrill", about = "Steno drilling util")]
 struct Opt {
     #[structopt(subcommand)]
@@ -118,6 +141,17 @@ fn main() -> Result<()> {
             let mut ui = Ui::new(db, Box::new(app), tapefile)?;
             ui.run(args.learn_time)?;
         }
+
+        Command::Drill(args) => {
+            info!("Starting drill mode");
+            let tapefile = args.tape_file.as_ref().map(|n| open_tape_file(n)).transpose()?;
+            let tapefile = tapefile.map(|f| Box::new(f) as Box<dyn Write>);
+            let db = Db::open(&args.file)?;
+            let app = DrillApp::new(args.list, args.repeat);
+            let mut ui = Ui::new(db, Box::new(app), tapefile)?;
+            ui.run(None)?;
+        }
+
         Command::Import(args) => {
             let mut db = Db::open(&args.file)?;
 
