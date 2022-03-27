@@ -5,7 +5,6 @@ use crate::db::Db;
 use crate::input::{StrokeReader, Value};
 use crate::stroke::{Stroke};
 use anyhow::Result;
-use learn::LearnApp;
 use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -20,6 +19,8 @@ use tui::{
     terminal::Frame,
     Terminal,
 };
+
+pub use learn::LearnApp;
 
 mod learn;
 
@@ -36,7 +37,7 @@ pub struct Ui {
 }
 
 /// The application is controlled via this trait.
-trait App {
+pub trait App {
     fn update_status(&mut self, db: &mut Db) -> Result<()>;
     fn update(&mut self, db: &mut Db) -> Result<bool>;
     fn add_stroke(&mut self, stroke: Stroke, db: &mut Db) -> Result<bool>;
@@ -48,19 +49,17 @@ trait App {
 }
 
 impl Ui {
-    pub fn new(db: Db, new: Vec<NewList>, tapefile: Option<Box<dyn Write>>) -> Result<Ui> {
+    pub fn new(db: Db, app: Box<dyn App>, tapefile: Option<Box<dyn Write>>) -> Result<Ui> {
         let mut stdout = io::stdout();
         enable_raw_mode()?;
         execute!(stdout, EnterAlternateScreen)?;
         let backend = CrosstermBackend::new(stdout);
         let terminal = Terminal::new(backend)?;
-        let now = get_now();
-        let app = LearnApp::new(now, new);
         let reader = StrokeReader::new();
 
         Ok(Ui {
             terminal,
-            app: Box::new(app),
+            app: app,
             reader,
             db,
             tapefile: tapefile,

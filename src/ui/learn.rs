@@ -72,7 +72,8 @@ pub struct LearnApp {
 }
 
 impl LearnApp {
-    pub fn new(start_time: f64, new: Vec<NewList>) -> LearnApp {
+    pub fn new(new: Vec<NewList>) -> LearnApp {
+        let start_time = get_now();
         LearnApp {
             start_time,
             last_time: start_time,
