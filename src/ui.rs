@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 //! The textual ui.
 
-use crate::db::{get_now, Db};
+use crate::db::Db;
 use crate::input::{StrokeReader, Value};
 use crate::stroke::{Stroke};
 use anyhow::Result;
