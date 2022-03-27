@@ -1,2 +1,24 @@
 /target
 .*.swp
+
+# The learn database itself.
+learn.db
+test.db
+
+# Backup files
+learn-*.sql
+learn.db.bak
+learn.db-2*
+
+# These I use for development
+r-*.sh
+tape.txt
+learn.log
+daily.sql
+music.txt
+testing.txt
+stenophones.txt
+Q.sql
+SCHEMA.md
+TODO.md
+for-anki.sh
