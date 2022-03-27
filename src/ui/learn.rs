@@ -133,7 +133,7 @@ impl App for LearnApp {
 
     // Update the app with the current progress.  Returns true if we should exit.
     fn update(&mut self, db: &mut Db) -> Result<bool> {
-        let words = db.get_drills(20)?;
+        let words = db.get_learns(20)?;
 
         self.text.clear();
         self.sofar.clear();

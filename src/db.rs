@@ -157,7 +157,7 @@ impl Db {
     }
 
     /// Query some words that need to be learned, returning up to count of them.
-    pub fn get_drills(&mut self, count: usize) -> Result<Vec<Work>> {
+    pub fn get_learns(&mut self, count: usize) -> Result<Vec<Work>> {
         let now = get_now();
         let mut result = vec![];
 
