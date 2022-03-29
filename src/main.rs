@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: GPL-3.
 //! Steno learning application.
 
 use chrono::Local;
 use crate::db::Db;
 use crate::lessons::Lesson;
-use crate::ui::{DrillApp, LearnApp, NewList, Ui};
+use crate::ui::{LearnApp, NewList, Ui};
 use anyhow::Result;
 use log::info;
 use std::io::Write;
@@ -137,7 +137,7 @@ fn main() -> Result<()> {
             let tapefile = args.tape_file.as_ref().map(|n| open_tape_file(n)).transpose()?;
             let tapefile = tapefile.map(|f| Box::new(f) as Box<dyn Write>);
             let db = Db::open(&args.file)?;
-            let app = LearnApp::new(args.new);
+            let app = LearnApp::new_learn(args.new);
             let mut ui = Ui::new(db, Box::new(app), tapefile)?;
             ui.run(args.learn_time)?;
         }
@@ -147,7 +147,8 @@ fn main() -> Result<()> {
             let tapefile = args.tape_file.as_ref().map(|n| open_tape_file(n)).transpose()?;
             let tapefile = tapefile.map(|f| Box::new(f) as Box<dyn Write>);
             let db = Db::open(&args.file)?;
-            let app = DrillApp::new(args.list, args.repeat);
+            let _ = args.repeat;
+            let app = LearnApp::new_drill(args.list);
             let mut ui = Ui::new(db, Box::new(app), tapefile)?;
             ui.run(None)?;
         }

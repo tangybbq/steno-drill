@@ -7,6 +7,7 @@ use super::{App, NewList, UiBackend};
 use anyhow::Result;
 use std::{
     collections::VecDeque,
+    rc::Rc,
 };
 use tui::{
     layout::{Constraint, Direction, Layout},
@@ -16,11 +17,36 @@ use tui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
+/// What is the source of the exercise.
+enum Source {
+    /// Learn existing words, with a possible source of new words.
+    Learn(Vec<NewList>),
+    /// Work through a word list, in order, re-enforcing these words.
+    Drill(usize),
+}
+
+impl Source {
+    /// Should we update the record when written successfully?
+    fn update_good(&self) -> bool {
+        match self {
+            Source::Learn(_) => true,
+            _ => false,
+        }
+    }
+}
+
+// The only meaningful default is learn mode, with an empty list.
+impl Default for Source {
+    fn default() -> Source {
+        Source::Learn(vec![])
+    }
+}
+
 // State of the application.
 #[derive(Default)]
 pub struct LearnApp {
-    // The lists to get new entries from.
-    new: Vec<NewList>,
+    // The kind of lesson.
+    source: Rc<Source>,
 
     // The tape represents everything stroked, as a tape from the steno machine would look.
     // New entries are pushed to the front.
@@ -38,6 +64,10 @@ pub struct LearnApp {
 
     // These are the strokes the user is expected to write.
     expected: Vec<Stroke>,
+
+    // The current position.  Depending on learn mode, used to indicate where the learning should
+    // start.
+    pos: usize,
 
     help: Option<String>,
 
@@ -72,12 +102,23 @@ pub struct LearnApp {
 }
 
 impl LearnApp {
-    pub fn new(new: Vec<NewList>) -> LearnApp {
+    pub fn new_learn(new: Vec<NewList>) -> LearnApp {
         let start_time = get_now();
         LearnApp {
             start_time,
             last_time: start_time,
-            new,
+            source: Rc::new(Source::Learn(new)),
+            ..LearnApp::default()
+        }
+    }
+
+    pub fn new_drill(list: usize) -> LearnApp {
+        let start_time = get_now();
+        LearnApp {
+            start_time,
+            last_time: start_time,
+            source: Rc::new(Source::Drill(list)),
+            pos: 1,
             ..LearnApp::default()
         }
     }
@@ -94,7 +135,10 @@ impl App for LearnApp {
 
     /// Update the status of the app, based on information from the database.
     fn update_status(&mut self, db: &mut Db) -> Result<()> {
-        let due = db.get_due_count()?;
+        let due = match self.source.as_ref() {
+            Source::Learn(_) => db.get_due_count()?,
+            Source::Drill(list) => db.get_drill_count(*list)? - (self.pos - 1),
+        };
 
         let now = get_now();
         self.elapsed = (now - self.start_time) as usize;
@@ -131,60 +175,12 @@ impl App for LearnApp {
         Ok(())
     }
 
-    // Update the app with the current progress.  Returns true if we should exit.
     fn update(&mut self, db: &mut Db) -> Result<bool> {
-        let words = db.get_learns(20)?;
-
-        self.text.clear();
-        self.sofar.clear();
-        self.expected.clear();
-        self.corrected = 0;
-        self.help = None;
-
-        let mut new_word = false;
-        if words.is_empty() {
-            if !self.new.is_empty() {
-                if let Some(work) = db.get_new(&self.new)? {
-                    self.expected.append(&mut work.strokes.linear());
-                    self.text.push_str(&work.text);
-                    self.head = Some(work);
-                    self.new_words += 1;
-                    new_word = true;
-                } else {
-                    self.goodbye = Some("No more words left in list.".to_string());
-                    return Ok(true);
-                }
-            } else {
-                self.goodbye = Some("No more words left to learn.".to_string());
-                return Ok(true);
-            }
-        } else {
-            for (id, word) in words.iter().enumerate() {
-                if id > 0 {
-                    self.text.push(' ');
-                }
-                self.text.push_str(&word.text);
-                if id == 0 {
-                    self.expected.append(&mut word.strokes.linear());
-                    self.text.push_str(" |");
-                }
-            }
-            if let Some(head) = words.first() {
-                self.head = Some(head.clone());
-            } else {
-                unreachable!();
-            }
+        let source = self.source.clone();
+        match source.as_ref() {
+            Source::Learn(v) => self.update_learn(db, v),
+            Source::Drill(l) => self.update_drill(db, *l),
         }
-
-        if let Some(work) = &self.head {
-            if work.interval < 90.0 {
-                self.help = Some(format!("{}write: {}",
-                        if new_word { "New word, " } else { "" },
-                        work.strokes));
-            }
-        }
-
-        Ok(false)
     }
 
     /// Add a single stroke that the user has written.  If it matches, will call 'update' to
@@ -217,7 +213,10 @@ impl App for LearnApp {
             self.factor = 1.0 - ((0.95 - self.factor) * 0.9 + 0.05);
 
             // Written correctly, record this, and update.
-            db.update(self.head.as_ref().unwrap(), self.corrected)?;
+            if self.source.update_good() || self.corrected > 0 {
+                db.update(self.head.as_ref().unwrap(), self.corrected)?;
+            }
+            self.pos += 1;
             if self.update(db)? {
                 return Ok(true);
             }
@@ -327,5 +326,94 @@ impl App for LearnApp {
         items.reverse();
         let tape = List::new(items).block(Block::default().title("Tape").borders(Borders::ALL));
         f.render_widget(tape, top[1]);
+    }
+}
+
+impl LearnApp {
+    // Update the app with the current progress.  Returns true if we should exit.
+    fn update_learn(&mut self, db: &mut Db, new: &[NewList]) -> Result<bool> {
+        let words = db.get_learns(20)?;
+
+        self.text.clear();
+        self.sofar.clear();
+        self.expected.clear();
+        self.corrected = 0;
+        self.help = None;
+
+        let mut new_word = false;
+        if words.is_empty() {
+            if !new.is_empty() {
+                if let Some(work) = db.get_new(&new)? {
+                    self.expected.append(&mut work.strokes.linear());
+                    self.text.push_str(&work.text);
+                    self.head = Some(work);
+                    self.new_words += 1;
+                    new_word = true;
+                } else {
+                    self.goodbye = Some("No more words left in list.".to_string());
+                    return Ok(true);
+                }
+            } else {
+                self.goodbye = Some("No more words left to learn.".to_string());
+                return Ok(true);
+            }
+        } else {
+            for (id, word) in words.iter().enumerate() {
+                if id > 0 {
+                    self.text.push(' ');
+                }
+                self.text.push_str(&word.text);
+                if id == 0 {
+                    self.expected.append(&mut word.strokes.linear());
+                    self.text.push_str(" |");
+                }
+            }
+            if let Some(head) = words.first() {
+                self.head = Some(head.clone());
+            } else {
+                unreachable!();
+            }
+        }
+
+        if let Some(work) = &self.head {
+            if work.interval < 90.0 {
+                self.help = Some(format!("{}write: {}",
+                        if new_word { "New word, " } else { "" },
+                        work.strokes));
+            }
+        }
+
+        Ok(false)
+    }
+
+    // Update the app with the current progress, drill mode.  Returns true if we should exit.
+    fn update_drill(&mut self, db: &mut Db, list: usize) -> Result<bool> {
+        let words = db.get_drill(list, self.pos, 30)?;
+        if words.is_empty() {
+            return Ok(true);
+        }
+
+        self.text.clear();
+        self.sofar.clear();
+        self.expected.clear();
+        self.corrected = 0;
+        self.help = None;
+
+        for (id, word) in words.iter().enumerate() {
+            if id > 0 {
+                self.text.push(' ');
+            }
+            self.text.push_str(&word.text);
+            if id == 0 {
+                self.expected.append(&mut word.strokes.linear());
+            }
+            if let Some(head) = words.first() {
+                self.head = Some(head.clone());
+            } else {
+                unreachable!();
+            }
+        }
+
+        Ok(false)
     }
 }

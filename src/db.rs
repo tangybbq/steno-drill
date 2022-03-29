@@ -4,7 +4,7 @@
 use crate::stroke::StenoPhrase;
 use crate::Lesson;
 use crate::ui::NewList;
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use log::info;
 use rusqlite::{named_params, Connection};
 use std::collections::HashMap;
@@ -203,6 +203,17 @@ impl Db {
         )?)
     }
 
+    /// Query how many words are left in a given list.
+    pub fn get_drill_count(&mut self, list: usize) -> Result<usize> {
+        Ok(self.conn.query_row("
+            SELECT COUNT(*)
+            FROM lesson
+            WHERE listid = :list",
+            named_params! { ":list": list },
+            |row| row.get(0),
+        )?)
+    }
+
     /// Retrieve a new word from the given lists.  When there are multiple lists, we try to work
     /// through the lists in a somewhat balanced manner.  There are two ways this could be done. 1.
     /// Based on how far each list has progressed, and select from the one the furthest behind, 2.
@@ -283,6 +294,57 @@ impl Db {
             }
         }
         Ok(None)
+    }
+
+    /// Retrieve an entire lesson, in order.  The entirety of the lesson must have at least been
+    /// started in the learning process.  Note that many drills have associated punctuation
+    /// combined with the words (this could perhaps be fixed on import), and these combos will have
+    /// to be learned.
+    pub fn get_drill(&mut self, list: usize, start: usize, limit: usize) -> Result<Vec<Work>> {
+        let mut result = vec![];
+
+        // Query the join, and if we get any NULLs back, return an error from this entire query.
+        let mut stmt = self.conn.prepare("
+            SELECT
+                    learn.word,
+                    learn.steno,
+                    goods,
+                    interval,
+                    next
+            FROM
+                    lesson LEFT JOIN learn USING (word)
+            WHERE
+                    lesson.listid = :list AND
+                    seq >= :start
+            ORDER BY
+                    seq
+            LIMIT
+                    :limit")?;
+        // query_map wants an sqlite-specific Result.  To make this work, we wrap our result twice.
+        for row in stmt.query_map(
+            named_params!{
+                ":list": list,
+                ":start": start,
+                ":limit": limit,
+            }, |row| {
+                let text: Option<String> = row.get(0)?;
+                let text = match text {
+                    Some(text) => text,
+                    None => return Ok(Err(anyhow!("Not all words in lesson have been learned"))),
+                };
+                let steno: String = row.get(1)?;
+                Ok(Ok(Work {
+                    text: text,
+                    strokes: StenoPhrase::parse(&steno).unwrap(),
+                    goods: row.get(2)?,
+                    interval: row.get(3)?,
+                    next: row.get(4)?,
+                }))})? {
+            result.push(row?);
+        }
+
+        let result: Result<Vec<_>> = result.into_iter().collect();
+        Ok(result?)
     }
 
     /// Update the given work in the database.  `corrections` is the number of corrections the user
