@@ -87,6 +87,9 @@ pub struct LearnApp {
     // New words that have been learned.
     new_words: usize,
 
+    // Limit to the number of new words learned.
+    limit: Option<usize>,
+
     // Number of seconds since the drill was started.
     elapsed: usize,
 
@@ -102,11 +105,12 @@ pub struct LearnApp {
 }
 
 impl LearnApp {
-    pub fn new_learn(new: Vec<NewList>) -> LearnApp {
+    pub fn new_learn(new: Vec<NewList>, limit: Option<usize>) -> LearnApp {
         let start_time = get_now();
         LearnApp {
             start_time,
             last_time: start_time,
+            limit,
             source: Rc::new(Source::Learn(new)),
             ..LearnApp::default()
         }
@@ -342,6 +346,12 @@ impl LearnApp {
 
         let mut new_word = false;
         if words.is_empty() {
+            if let Some(limit) = self.limit {
+                if self.new_words >= limit {
+                    self.goodbye = Some("Reached limit of new words.".to_string());
+                    return Ok(true);
+                }
+            }
             if !new.is_empty() {
                 if let Some(work) = db.get_new(&new)? {
                     self.expected.append(&mut work.strokes.linear());
