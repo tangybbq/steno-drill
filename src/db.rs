@@ -411,6 +411,32 @@ impl Db {
         Ok(result)
     }
 
+    /// Retrieve due ranked into buckets.
+    pub fn get_due_buckets(&mut self) -> Result<Vec<Bucket>> {
+        let mut result: Vec<_> = BUCKETS
+            .iter()
+            .map(|b| Bucket {
+                name: b.name,
+                count: 0,
+            })
+            .collect();
+
+        let now = get_now();
+        let mut stmt = self.conn.prepare("SELECT next FROM learn")?;
+        for next in stmt.query_map([], |row| row.get::<usize, f64>(0))? {
+            let next = next? - now;
+
+            for (dest, src) in result.iter_mut().zip(BUCKETS) {
+                if next < src.limit {
+                    dest.count += 1;
+                    break;
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
     /// Add a timestamp to the database.  Returns an ID needed to record the end stamp.
     pub fn start_timestamp(&mut self, key: &str) -> Result<i64> {
         let tx = self.conn.transaction()?;

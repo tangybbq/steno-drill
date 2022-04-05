@@ -180,13 +180,17 @@ fn main() -> Result<()> {
             println!();
             println!("{} words due", due);
             let hist = db.get_histogram()?;
-            for bucket in &hist {
-                if bucket.count > 0 {
-                    println!("{:6}: {}", bucket.name, bucket.count);
+            let dues = db.get_due_buckets()?;
+            let mut total = 0;
+            println!("      : inter  next total");
+            for (bucket, due) in hist.iter().zip(&dues) {
+                total += due.count;
+                if bucket.count > 0 || due.count > 0 {
+                    println!("{:6}: {:5} {:5} {:5}", bucket.name, bucket.count, due.count, total);
                 }
             }
             println!("------: ----");
-            println!("{:6}: {}", "", hist.iter().map(|b| b.count).sum::<u64>());
+            println!("{:6}: {:5}", "", hist.iter().map(|b| b.count).sum::<u64>());
             println!("{:.1} minutes practiced",
                 db.get_minutes_practiced()?);
         }
