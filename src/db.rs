@@ -12,7 +12,7 @@ use std::path::Path;
 use std::time::SystemTime;
 
 /// The schema version that matches this code.  May be usable in the future for automatic upgrades.
-static SCHEMA_VERSION: &str = "2022-03-12a";
+static SCHEMA_VERSION: &str = "2022-04-14a";
 
 static SCHEMA: &[&str] = &[
     "CREATE TABLE learn (
@@ -38,6 +38,13 @@ static SCHEMA: &[&str] = &[
         start DATETIME NOT NULL,
         stop DATETIME);",
     "CREATE TABLE schema (version TEXT NOT NULL);",
+    "CREATE TABLE errors (
+        stamp DATETIME NOT NULL,
+        word TEXT REFERENCES learn (word) NOT NULL,
+        goods INTEGER NOT NULL,
+        interval REAL NOT NULL,
+        next REAL NOT NULL,
+        actual TEXT NOT NULL);",
 ];
 
 pub struct Db {
@@ -382,6 +389,24 @@ impl Db {
                 ":word": &work.text,
             },
         )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Record an error.  Along with the word written (and data about it), record what the user
+    /// actually wrote.
+    pub fn record_error(&mut self, work: &Work, actual: &str) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "INSERT INTO errors (stamp, word, goods, interval, next, actual)
+                VALUES (datetime(), :word, :goods, :interval, :next, :actual)",
+            named_params! {
+                ":word": &work.text,
+                ":goods": work.goods,
+                ":interval": work.interval,
+                ":next": work.next,
+                ":actual": actual,
+            })?;
         tx.commit()?;
         Ok(())
     }

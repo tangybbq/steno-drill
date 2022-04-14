@@ -62,6 +62,9 @@ pub struct LearnApp {
     // This shows strokes that have been written so far.
     sofar: Vec<Stroke>,
 
+    // Strokes so far, but including all corrections.
+    raw_strokes: Vec<Stroke>,
+
     // These are the strokes the user is expected to write.
     expected: Vec<Stroke>,
 
@@ -204,6 +207,7 @@ impl App for LearnApp {
         } else {
             self.sofar.push(stroke);
         }
+        self.raw_strokes.push(stroke);
 
         if self.expected == self.sofar {
             // Update the WPM.
@@ -219,6 +223,11 @@ impl App for LearnApp {
             // Written correctly, record this, and update.
             if self.source.update_good() || self.corrected > 0 {
                 db.update(self.head.as_ref().unwrap(), self.corrected)?;
+            }
+            if self.corrected > 0 {
+                // Record the error.
+                let word = StenoWord(self.raw_strokes.clone());
+                db.record_error(self.head.as_ref().unwrap(), &word.to_string())?;
             }
             self.pos += 1;
             if self.update(db)? {
@@ -340,6 +349,7 @@ impl LearnApp {
 
         self.text.clear();
         self.sofar.clear();
+        self.raw_strokes.clear();
         self.expected.clear();
         self.corrected = 0;
         self.help = None;
