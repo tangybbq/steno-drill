@@ -215,10 +215,10 @@ fn main() -> Result<()> {
                 .max_by_key(|e| e.text.len())
                 .map(|e| e.text.len())
                 .unwrap_or(0);
-            println!("{:width$} good      interval           next", "word", width = lword);
-            println!("{:-<width$} ----    ----------     ----------", "", width = lword);
+            println!("{:width$} | good |      interval      |        next", "word", width = lword);
+            println!("{:-<width$} | ---- |  ----------------- |  ----------------", "", width = lword);
             for ent in db.get_to_learn()? {
-                println!("{:width$} {:>4} {} {}",
+                println!("{:width$} | {:>4} | {} | {}",
                     ent.text,
                     ent.goods,
                     nice_time(ent.interval),
@@ -239,21 +239,39 @@ fn nice_time(time: f64) -> String {
     let text = format!("{}", humantime::format_duration(Duration::from_secs_f64(time)));
     let mut result = String::new();
 
-    let mut spaces = 0;
-    for ch in text.chars() {
-        if ch == ' ' {
-            spaces += 1;
-            if spaces >= 2 {
-                break;
-            }
-        }
-        result.push(ch);
-    }
     if isneg {
-        format!("({:>12})", result)
+        result.push('(');
     } else {
-        format!(" {:>12} ", result)
+        result.push(' ');
     }
+
+    let mut spaces = 0;
+    for piece in text.split(' ') {
+        if spaces > 0 {
+            result.push(' ');
+        }
+        spaces += 1;
+        if spaces > 2 {
+            break;
+        }
+        // The text consists of a number, followed by letters giving the unit.  We want the number
+        // to be right justified.
+        let digits = piece.chars().take_while(|ch| ch.is_digit(10)).count();
+        for _ in digits .. 3 {
+            result.push(' ');
+        }
+        result.push_str(&piece);
+        for _ in piece.len() - digits .. 4 {
+            result.push(' ');
+        }
+    }
+
+    if isneg {
+        result.push(')');
+    } else {
+        result.push(' ');
+    }
+    result
 }
 
 fn open_tape_file(name: &str) -> Result<File> {
