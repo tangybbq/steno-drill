@@ -553,6 +553,7 @@ dependencies = [
  "chrono",
  "crossterm 0.23.0",
  "env_logger",
+ "humantime",
  "log",
  "rand",
  "rusqlite",

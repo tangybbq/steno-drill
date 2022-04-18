@@ -9,6 +9,7 @@ use anyhow::Result;
 use log::info;
 use std::io::Write;
 use std::fs::File;
+use std::time::Duration;
 use structopt::StructOpt;
 
 mod db;
@@ -38,6 +39,10 @@ enum Command {
     #[structopt(name = "info")]
     /// Return information about lesson progress
     Info(InfoCommand),
+
+    #[structopt(name = "tolearn")]
+    /// Show a list of what is to be learned.
+    ToLearn(ToLearnCommand),
 }
 
 #[derive(Debug, StructOpt)]
@@ -120,6 +125,13 @@ struct DrillCommand {
 }
 
 #[derive(Debug, StructOpt)]
+struct ToLearnCommand {
+    #[structopt(long = "db")]
+    /// The pathname of the learning database.
+    file: String,
+}
+
+#[derive(Debug, StructOpt)]
 #[structopt(name = "sdrill", about = "Steno drilling util")]
 struct Opt {
     #[structopt(subcommand)]
@@ -194,9 +206,54 @@ fn main() -> Result<()> {
             println!("{:.1} minutes practiced",
                 db.get_minutes_practiced()?);
         }
+
+        Command::ToLearn(args) => {
+            let mut db = Db::open(&args.file)?;
+            let ents = db.get_to_learn()?;
+            let lword = ents
+                .iter()
+                .max_by_key(|e| e.text.len())
+                .map(|e| e.text.len())
+                .unwrap_or(0);
+            println!("{:width$} good      interval           next", "word", width = lword);
+            println!("{:-<width$} ----    ----------     ----------", "", width = lword);
+            for ent in db.get_to_learn()? {
+                println!("{:width$} {:>4} {} {}",
+                    ent.text,
+                    ent.goods,
+                    nice_time(ent.interval),
+                    nice_time(ent.next),
+                    width = lword);
+            }
+        }
     }
 
     Ok(())
+}
+
+/// Format a duration in a human format.  To avoid these being excessively long, they will be
+/// truncated at the second space.
+fn nice_time(time: f64) -> String {
+    let isneg = time < 0.0;
+    let time = time.abs();
+    let text = format!("{}", humantime::format_duration(Duration::from_secs_f64(time)));
+    let mut result = String::new();
+
+    let mut spaces = 0;
+    for ch in text.chars() {
+        if ch == ' ' {
+            spaces += 1;
+            if spaces >= 2 {
+                break;
+            }
+        }
+        result.push(ch);
+    }
+    if isneg {
+        format!("({:>12})", result)
+    } else {
+        format!(" {:>12} ", result)
+    }
 }
 
 fn open_tape_file(name: &str) -> Result<File> {

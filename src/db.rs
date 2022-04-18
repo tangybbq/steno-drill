@@ -462,6 +462,28 @@ impl Db {
         Ok(result)
     }
 
+    /// Query for words that are pending to learn.
+    pub fn get_to_learn(&mut self) -> Result<Vec<ToLearn>> {
+        let mut stmt = self.conn.prepare("
+            SELECT word, goods, interval, next - strftime('%s')
+            FROM learn
+            ORDER by next
+            LIMIT 50")?;
+        let mut result = vec![];
+        for row in stmt.query_map([], |row| {
+            let text: String = row.get(0)?;
+            Ok(ToLearn {
+                text,
+                goods: row.get(1)?,
+                interval: row.get(2)?,
+                next: row.get(3)?,
+            })
+        })? {
+            result.push(row?);
+        }
+        Ok(result)
+    }
+
     /// Add a timestamp to the database.  Returns an ID needed to record the end stamp.
     pub fn start_timestamp(&mut self, key: &str) -> Result<i64> {
         let tx = self.conn.transaction()?;
@@ -595,3 +617,11 @@ const DAY: u64 = 24 * HOUR;
 const WEEK: u64 = 7 * DAY;
 const MONTH: u64 = 4 * WEEK;
 const YEAR: u64 = 52 * WEEK;
+
+#[derive(Debug)]
+pub struct ToLearn {
+    pub text: String,
+    pub goods: usize,
+    pub interval: f64,
+    pub next: f64,
+}
