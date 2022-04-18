@@ -265,6 +265,10 @@ fn nice_time(time: f64) -> String {
             result.push(' ');
         }
     }
+    // Pad for any missing (when the result is exact)
+    for _ in spaces .. 2 {
+        result.push_str("         ");
+    }
 
     if isneg {
         result.push(')');
