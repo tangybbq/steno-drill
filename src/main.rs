@@ -215,10 +215,11 @@ fn main() -> Result<()> {
                 .max_by_key(|e| e.text.len())
                 .map(|e| e.text.len())
                 .unwrap_or(0);
-            println!("{:width$} | good |        interval        |          next", "word", width = lword);
-            println!("{:-<width$} | ---- |  --------------------- |  --------------------", "", width = lword);
-            for ent in db.get_to_learn()? {
-                println!("{:width$} | {:>4} | {} | {}",
+            println!("   {:width$} | good |        interval        |          next", "word", width = lword);
+            println!("   {:-<width$} | ---- |  --------------------- |  --------------------", "", width = lword);
+            for (i, ent) in db.get_to_learn()?.iter().enumerate() {
+                println!("{:>2} {:width$} | {:>4} | {} | {}",
+                    i + 1,
                     ent.text,
                     ent.goods,
                     nice_time(ent.interval),
