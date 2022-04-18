@@ -215,8 +215,8 @@ fn main() -> Result<()> {
                 .max_by_key(|e| e.text.len())
                 .map(|e| e.text.len())
                 .unwrap_or(0);
-            println!("{:width$} | good |      interval      |        next", "word", width = lword);
-            println!("{:-<width$} | ---- |  ----------------- |  ----------------", "", width = lword);
+            println!("{:width$} | good |        interval        |          next", "word", width = lword);
+            println!("{:-<width$} | ---- |  --------------------- |  --------------------", "", width = lword);
             for ent in db.get_to_learn()? {
                 println!("{:width$} | {:>4} | {} | {}",
                     ent.text,
@@ -261,13 +261,13 @@ fn nice_time(time: f64) -> String {
             result.push(' ');
         }
         result.push_str(&piece);
-        for _ in piece.len() - digits .. 4 {
+        for _ in piece.len() - digits .. 6 {
             result.push(' ');
         }
     }
     // Pad for any missing (when the result is exact)
     for _ in spaces .. 2 {
-        result.push_str("         ");
+        result.push_str("           ");
     }
 
     if isneg {
