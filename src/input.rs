@@ -9,6 +9,10 @@
 //! that many characters.  To accomodate this, we will keep track of how many characters are
 //! received, including the space, and when backspace is received, subtract from that until we
 //! cross a boundary.
+//!
+//! Although this code will still handle the case where '*' generates numerous backspaces, we also
+//! handle the case where the Plover dictionary contains an entry for '*' that just emits a star and
+//! a space.
 
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
