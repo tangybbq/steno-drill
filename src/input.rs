@@ -106,7 +106,7 @@ impl StrokeReader {
 
         self.sizes.push_back(self.buffer.len() + 1);
         while self.sizes.len() > 100 {
-            _ = self.sizes.pop_front();
+            self.sizes.pop_front();
         }
 
         let stroke = Stroke::from_text(&self.buffer)?;

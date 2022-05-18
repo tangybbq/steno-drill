@@ -198,11 +198,11 @@ impl App for LearnApp {
         // processing.
         self.tape.push_front(stroke);
         if self.tape.len() > 1000 {
-            _ = self.tape.pop_back();
+            self.tape.pop_back();
         }
 
         if stroke.is_star() {
-            _ = self.sofar.pop();
+            self.sofar.pop();
             self.corrected += 1;
         } else {
             self.sofar.push(stroke);
