@@ -173,7 +173,7 @@ impl Db {
             SELECT word, steno, goods, interval, next
             FROM learn
             WHERE next < :now
-            ORDER BY next
+            ORDER BY interval, next
             LIMIT :limit",
         )?;
         for row in stmt.query_map(
@@ -464,13 +464,22 @@ impl Db {
 
     /// Query for words that are pending to learn.
     pub fn get_to_learn(&mut self) -> Result<Vec<ToLearn>> {
+        let now = get_now();
+
+        // TODO: This might be easier as a single query.  We want different ordering for the items
+        // that are expired (ordered by interval), and by next for those that are yet due.
         let mut stmt = self.conn.prepare("
-            SELECT word, goods, interval, next - strftime('%s')
+            SELECT word, goods, interval, next - :now
             FROM learn
-            ORDER by next
+            WHERE next <= :now
+            ORDER by interval, next
             LIMIT 50")?;
         let mut result = vec![];
-        for row in stmt.query_map([], |row| {
+        for row in stmt.query_map(
+            named_params! {
+                ":now": now,
+            },
+            |row| {
             let text: String = row.get(0)?;
             Ok(ToLearn {
                 text,
@@ -481,6 +490,31 @@ impl Db {
         })? {
             result.push(row?);
         }
+
+        let mut stmt = self.conn.prepare("
+            SELECT word, goods, interval, next - :now
+            FROM learn
+            WHERE next > :now
+            ORDER by next
+            LIMIT 50")?;
+        for row in stmt.query_map(
+            named_params! {
+                ":now": now,
+            },
+            |row| {
+            let text: String = row.get(0)?;
+            Ok(ToLearn {
+                text,
+                goods: row.get(1)?,
+                interval: row.get(2)?,
+                next: row.get(3)?,
+            })
+        })? {
+            result.push(row?);
+        }
+
+        result.truncate(50);
+
         Ok(result)
     }
 

@@ -345,7 +345,7 @@ impl App for LearnApp {
 impl LearnApp {
     // Update the app with the current progress.  Returns true if we should exit.
     fn update_learn(&mut self, db: &mut Db, new: &[NewList]) -> Result<bool> {
-        let words = db.get_learns(20)?;
+        let words = db.get_learns(1)?;
 
         self.text.clear();
         self.sofar.clear();
