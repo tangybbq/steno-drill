@@ -203,8 +203,9 @@ fn main() -> Result<()> {
             }
             println!("------: ----");
             println!("{:6}: {:5}", "", hist.iter().map(|b| b.count).sum::<u64>());
-            println!("{:.1} minutes practiced",
-                db.get_minutes_practiced()?);
+            let mins = db.get_minutes_practiced()?;
+            println!("{:.1} minutes practiced, {:.1} hours",
+                mins, mins / 60.0);
         }
 
         Command::ToLearn(args) => {
