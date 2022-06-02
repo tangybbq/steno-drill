@@ -364,11 +364,11 @@ impl Db {
             work.goods
         };
         let interval = if corrections == 0 {
-            // Generate a random factor between 2.5 and 3.0.  This will distribute the resulting
+            // Generate a random factor between 1.75 and 2.25.  This will distribute the resulting
             // times a bit randomly, keeping groups of words from being asked in the same order
             // each time.
             let bias = rand::random::<f64>() * 0.5;
-            work.interval * (2.5 + bias)
+            work.interval * (1.75 + bias)
         } else {
             5.0
         };
