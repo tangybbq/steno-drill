@@ -463,7 +463,7 @@ impl Db {
     }
 
     /// Query for words that are pending to learn.
-    pub fn get_to_learn(&mut self) -> Result<Vec<ToLearn>> {
+    pub fn get_to_learn(&mut self, limit: usize) -> Result<Vec<ToLearn>> {
         let now = get_now();
 
         // TODO: This might be easier as a single query.  We want different ordering for the items
@@ -473,11 +473,12 @@ impl Db {
             FROM learn
             WHERE next <= :now
             ORDER by interval, next
-            LIMIT 50")?;
+            LIMIT :limit")?;
         let mut result = vec![];
         for row in stmt.query_map(
             named_params! {
                 ":now": now,
+                ":limit": limit,
             },
             |row| {
             let text: String = row.get(0)?;
@@ -496,10 +497,11 @@ impl Db {
             FROM learn
             WHERE next > :now
             ORDER by next
-            LIMIT 50")?;
+            LIMIT :limit")?;
         for row in stmt.query_map(
             named_params! {
                 ":now": now,
+                ":limit": limit,
             },
             |row| {
             let text: String = row.get(0)?;
@@ -513,7 +515,7 @@ impl Db {
             result.push(row?);
         }
 
-        result.truncate(50);
+        result.truncate(limit);
 
         Ok(result)
     }

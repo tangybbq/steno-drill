@@ -129,6 +129,10 @@ struct ToLearnCommand {
     #[structopt(long = "db")]
     /// The pathname of the learning database.
     file: String,
+
+    #[structopt(long = "limit", default_value = "50")]
+    /// Limit the result to this many entries
+    limit: usize,
 }
 
 #[derive(Debug, StructOpt)]
@@ -210,7 +214,7 @@ fn main() -> Result<()> {
 
         Command::ToLearn(args) => {
             let mut db = Db::open(&args.file)?;
-            let ents = db.get_to_learn()?;
+            let ents = db.get_to_learn(args.limit)?;
             let lword = ents
                 .iter()
                 .max_by_key(|e| e.text.len())
@@ -218,7 +222,7 @@ fn main() -> Result<()> {
                 .unwrap_or(0);
             println!("   {:width$} | good |        interval        |          next", "word", width = lword);
             println!("   {:-<width$} | ---- |  --------------------- |  --------------------", "", width = lword);
-            for (i, ent) in db.get_to_learn()?.iter().enumerate() {
+            for (i, ent) in ents.iter().enumerate() {
                 println!("{:>2} {:width$} | {:>4} | {} | {}",
                     i + 1,
                     ent.text,
