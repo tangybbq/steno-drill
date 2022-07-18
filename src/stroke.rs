@@ -43,6 +43,8 @@ static RIGHT: Stroke = Stroke(0x0003ff);
 static NUM: Stroke = Stroke(0x1000000);
 static DIGITS: Stroke = Stroke(0x3562a8);
 static STAR: Stroke = Stroke(0x001000);
+static CARET: Stroke = Stroke(0x800000);
+static PLUS: Stroke = Stroke(0x400000);
 
 impl Stroke {
     pub fn from_text(text: &str) -> Result<Stroke> {
@@ -143,9 +145,12 @@ impl Stroke {
         buf.to_string()
     }
 
-    /// Is this stroke the star?
+    /// Is this stroke the star?  We also allow the caret or plus keys, alone, to delete, presuming
+    /// this will also be in the user's dictionary.
     pub fn is_star(self) -> bool {
-        self == STAR
+        self == STAR ||
+            self == CARET ||
+            self == PLUS
     }
 }
 
