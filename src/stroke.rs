@@ -31,8 +31,8 @@ pub struct StenoWord(pub Vec<Stroke>);
 #[derive(Clone, Debug)]
 pub struct StenoPhrase(pub Vec<StenoWord>);
 
-static NORMAL: &str = "STKPWHRAO*EUFRPBLGTSDZ";
-static NUMS: &str = "12K3W4R50*EU6R7B8G9SDZ";
+static NORMAL: &str = "^+STKPWHRAO*EUFRPBLGTSDZ";
+static NUMS: &str = "^+12K3W4R50*EU6R7B8G9SDZ";
 
 // #ST KPWH RAO* EURF PBLG TSDZ
 
@@ -40,7 +40,7 @@ static NUMS: &str = "12K3W4R50*EU6R7B8G9SDZ";
 // static LEFT: Stroke = Stroke(0x7f8000);
 static MID: Stroke = Stroke(0x007c00);
 static RIGHT: Stroke = Stroke(0x0003ff);
-static NUM: Stroke = Stroke(0x400000);
+static NUM: Stroke = Stroke(0x1000000);
 static DIGITS: Stroke = Stroke(0x3562a8);
 static STAR: Stroke = Stroke(0x001000);
 
@@ -250,7 +250,7 @@ impl fmt::Display for Stroke {
 
 #[test]
 fn stroke_roundtrip() {
-    for ch in 1u32..0x800000 {
+    for ch in 1u32..0x2000000 {
         let text = format!("{}", Stroke(ch));
         let orig = Stroke::from_text(&text).unwrap();
         if ch != orig.0 {
