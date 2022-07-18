@@ -220,10 +220,10 @@ fn main() -> Result<()> {
                 .max_by_key(|e| e.text.len())
                 .map(|e| e.text.len())
                 .unwrap_or(0);
-            println!("   {:width$} | good |        interval        |          next", "word", width = lword);
-            println!("   {:-<width$} | ---- |  --------------------- |  --------------------", "", width = lword);
+            println!("    {:width$} | good |        interval        |          next", "word", width = lword);
+            println!("    {:-<width$} | ---- |  --------------------- |  --------------------", "", width = lword);
             for (i, ent) in ents.iter().enumerate() {
-                println!("{:>2} {:width$} | {:>4} | {} | {}",
+                println!("{:>3} {:width$} | {:>4} | {} | {}",
                     i + 1,
                     ent.text,
                     ent.goods,
