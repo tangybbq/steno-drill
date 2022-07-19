@@ -122,7 +122,7 @@ impl Db {
     }
 
     /// Show the information about lessons.
-    pub fn info(&mut self, seen: bool, unseen: bool) -> Result<()> {
+    pub fn info(&mut self, seen: bool, unseen: bool, hide_learned: bool) -> Result<()> {
         let mut stmt = self.conn.prepare(
             "SELECT
             list.id,
@@ -147,6 +147,9 @@ impl Db {
                 continue;
             }
             if unseen && row.num > 0 {
+                continue;
+            }
+            if hide_learned && row.num == row.total {
                 continue;
             }
             println!(

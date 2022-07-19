@@ -75,6 +75,10 @@ struct InfoCommand {
     #[structopt(long = "unseen")]
     /// Only show unseen entries
     unseen: bool,
+
+    #[structopt(long = "hide-learned")]
+    /// Hide entries that have been fully learned
+    hide_learned: bool,
 }
 
 #[derive(Debug, StructOpt)]
@@ -191,7 +195,7 @@ fn main() -> Result<()> {
 
         Command::Info(args) => {
             let mut db = Db::open(&args.file)?;
-            db.info(args.seen, args.unseen)?;
+            db.info(args.seen, args.unseen, args.hide_learned)?;
             let due = db.get_due_count()?;
             println!();
             println!("{} words due", due);
