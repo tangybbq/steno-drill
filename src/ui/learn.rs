@@ -99,6 +99,10 @@ pub struct LearnApp {
     // How many errors have we made in this session.
     error_count: usize,
 
+    // How much the errors have cost us.  This is an approximate calculation, which can be seen
+    // where this value is computed.
+    error_cost: f64,
+
     // A learn time, in minutes.
     learn_time: Option<usize>,
 
@@ -170,6 +174,7 @@ impl App for LearnApp {
         self.status.push(ListItem::new(format!("new words: {}", self.new_words)));
         self.status.push(ListItem::new(format!("WPM: {:.1}", self.wpm)));
         self.status.push(ListItem::new(format!("Session errors: {}", self.error_count)));
+        self.status.push(ListItem::new(format!("Error cost: {:.2}min", self.error_cost)));
         // self.app.status.push(ListItem::new(format!("factor: {:.4}", self.app.factor)));
 
         self.rstatus.clear();
@@ -229,6 +234,18 @@ impl App for LearnApp {
                 db.update(self.head.as_ref().unwrap(), self.corrected)?;
             }
             if self.corrected > 0 {
+                // Adjust the error cost based on the inverval of the current word.  This is an
+                // approximation, but should give us an idea of how much extra study time will be
+                // needed because of the mistakes.  The current interval is time that is wasted,
+                // which we will count as the loss.  We'll assume that each good stroke
+                // approximately doubles the interval, starting from the initial 5s.  We also have
+                // to make an asumption as to the speed the strokes are being written.  For this
+                // display, we will assume 20WPM, which means about 3 seconds per stroke.
+                if let Some(ref head) = self.head {
+                    let cost = (head.interval / 5.0).log2() * 3.0 / 60.0;
+                    self.error_cost += cost;
+                }
+
                 // Record the error.
                 let word = StenoWord(self.raw_strokes.clone());
                 db.record_error(self.head.as_ref().unwrap(), &word.to_string())?;
