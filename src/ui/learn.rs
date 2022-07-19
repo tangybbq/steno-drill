@@ -96,6 +96,9 @@ pub struct LearnApp {
     // Number of seconds since the drill was started.
     elapsed: usize,
 
+    // How many errors have we made in this session.
+    error_count: usize,
+
     // A learn time, in minutes.
     learn_time: Option<usize>,
 
@@ -166,6 +169,7 @@ impl App for LearnApp {
         self.status.push(ListItem::new(format!("words due: {}", due)));
         self.status.push(ListItem::new(format!("new words: {}", self.new_words)));
         self.status.push(ListItem::new(format!("WPM: {:.1}", self.wpm)));
+        self.status.push(ListItem::new(format!("Session errors: {}", self.error_count)));
         // self.app.status.push(ListItem::new(format!("factor: {:.4}", self.app.factor)));
 
         self.rstatus.clear();
@@ -228,6 +232,7 @@ impl App for LearnApp {
                 // Record the error.
                 let word = StenoWord(self.raw_strokes.clone());
                 db.record_error(self.head.as_ref().unwrap(), &word.to_string())?;
+                self.error_count += 1;
             }
             self.pos += 1;
             if self.update(db)? {
