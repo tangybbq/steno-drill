@@ -170,11 +170,11 @@ impl App for LearnApp {
                         self.elapsed / 60,
                         self.elapsed % 60)));
         }
-        self.status.push(ListItem::new(format!("words due: {}", due)));
-        self.status.push(ListItem::new(format!("new words: {}", self.new_words)));
-        self.status.push(ListItem::new(format!("WPM: {:.1}", self.wpm)));
+        self.status.push(ListItem::new(format!("words due     : {}", due)));
+        self.status.push(ListItem::new(format!("new words     : {}", self.new_words)));
+        self.status.push(ListItem::new(format!("WPM           : {:.1}", self.wpm)));
         self.status.push(ListItem::new(format!("Session errors: {}", self.error_count)));
-        self.status.push(ListItem::new(format!("Error cost: {:.2}min", self.error_cost)));
+        self.status.push(ListItem::new(format!("Error cost    : {:.2}min", self.error_cost)));
         // self.app.status.push(ListItem::new(format!("factor: {:.4}", self.app.factor)));
 
         self.rstatus.clear();
