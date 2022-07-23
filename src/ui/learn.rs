@@ -285,7 +285,7 @@ impl App for LearnApp {
     fn render(&mut self, f: &mut Frame<UiBackend>) {
         let top = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Min(45), Constraint::Length(25)].as_ref())
+            .constraints([Constraint::Min(45), Constraint::Length(27)].as_ref())
             .split(f.size());
         // We kind of assume a particular layout.
         let left = Layout::default()
