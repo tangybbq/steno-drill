@@ -360,20 +360,28 @@ impl Db {
     /// Update the given work in the database.  `corrections` is the number of corrections the user
     /// had to make to write this.  For now, we consider 0 a success and will increase the good
     /// count and interval.
-    pub fn update(&mut self, work: &Work, corrections: usize) -> Result<()> {
+    pub fn update(&mut self, work: &Work, corrections: usize, actual_time: f64) -> Result<()> {
         let goods = if corrections == 0 {
             work.goods + 1
         } else {
             work.goods
         };
         let interval = if corrections == 0 {
+            // If the actual time spent is larger than the interval, base our new time off of the
+            // actual interval.  In general, this will be the case, since the program doesn't drill
+            // words until the interval is reached.
+            let interval = work.interval.max(actual_time);
+
             // Generate a random factor between 1.75 and 2.25.  This will distribute the resulting
             // times a bit randomly, keeping groups of words from being asked in the same order
             // each time.
             let bias = rand::random::<f64>() * 0.5;
-            work.interval * (1.75 + bias)
+
+            // If the interval chosen is less than the actualy time taken, make that the new
+            // interval, after all, it was indeed learned after that much time.
+            interval * (1.75 + bias)
         } else {
-            5.0
+            (work.interval / 4.0).max(5.0)
         };
         let next = get_now() + interval;
         let steno = format!("{}", work.strokes);

@@ -231,7 +231,9 @@ impl App for LearnApp {
 
             // Written correctly, record this, and update.
             if self.source.update_good() || self.corrected > 0 {
-                db.update(self.head.as_ref().unwrap(), self.corrected)?;
+                let head = self.head.as_ref().unwrap();
+                let actual_interval = now - (head.next - head.interval);
+                db.update(head, self.corrected, actual_interval)?;
             }
             if self.corrected > 0 {
                 // Adjust the error cost based on the inverval of the current word.  This is an
