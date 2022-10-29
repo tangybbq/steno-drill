@@ -370,16 +370,22 @@ impl Db {
             // If the actual time spent is larger than the interval, base our new time off of the
             // actual interval.  In general, this will be the case, since the program doesn't drill
             // words until the interval is reached.
-            let interval = work.interval.max(actual_time);
+            //let interval = work.interval.max(actual_time);
+            _ = actual_time;
 
-            // Generate a random factor between 1.25 and 1.5.  This will distribute the resulting
+            // Don't actually do this, it makes things go away way to quickly. We want the
+            // repetitions of new words, that is how they are learned.  This is about muscle
+            // memory, not new facts being stored.
+            let interval = work.interval;
+
+            // Generate a random factor between 1.5 and 2.0.  This will distribute the resulting
             // times a bit randomly, keeping groups of words from being asked in the same order
             // each time.
-            let bias = rand::random::<f64>() * 0.25;
+            let bias = rand::random::<f64>() * 0.5;
 
             // If the interval chosen is less than the actualy time taken, make that the new
             // interval, after all, it was indeed learned after that much time.
-            interval * (1.25 + bias)
+            interval * (1.5 + bias)
         } else {
             (work.interval / 4.0).max(5.0)
         };
