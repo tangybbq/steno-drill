@@ -367,16 +367,26 @@ impl Db {
             work.goods
         };
         let interval = if corrections == 0 {
+            // Don't use longer actual times if the current interval is less than a threshold.
+            // We'll set to 10 minutes, which gives a handful of repetitions before allowing it to
+            // be a daily type of interval.
+            let actual_time =
+                if work.interval < 24.0 * 60.0 * 60.0 {
+                    0.0
+                } else {
+                    actual_time
+                };
+
             // If the actual time spent is larger than the interval, base our new time off of the
             // actual interval.  In general, this will be the case, since the program doesn't drill
             // words until the interval is reached.
-            //let interval = work.interval.max(actual_time);
+            let interval = work.interval.max(actual_time);
             _ = actual_time;
 
             // Don't actually do this, it makes things go away way to quickly. We want the
             // repetitions of new words, that is how they are learned.  This is about muscle
             // memory, not new facts being stored.
-            let interval = work.interval;
+            // let interval = work.interval;
 
             // Generate a random factor between 1.5 and 2.0.  This will distribute the resulting
             // times a bit randomly, keeping groups of words from being asked in the same order
