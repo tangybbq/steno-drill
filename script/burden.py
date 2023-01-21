@@ -2,6 +2,11 @@
 
 import math
 import sqlite3
+from signal import signal, SIGPIPE, SIG_DFL
+
+# Just ignore sig pipe to avoid errors when piping through things like
+# 'head'.
+signal(SIGPIPE, SIG_DFL)
 
 # Try to estimate a daily burden.  The idea here is to try and
 # estimate how much practice is needed to keep up, or get ahead.
