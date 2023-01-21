@@ -7,7 +7,7 @@ in
 pkgs.mkShell {
   nativeBuildInputs = [
     pkgs.openssl.dev
-    pkgs.pkgconfig
+    pkgs.pkg-config
     pkgs.sqlite.dev
     pkgs.rustup
   ];
