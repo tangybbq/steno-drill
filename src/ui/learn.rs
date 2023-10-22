@@ -232,7 +232,14 @@ impl App for LearnApp {
             // Written correctly, record this, and update.
             if self.source.update_good() || self.corrected > 0 {
                 let head = self.head.as_ref().unwrap();
-                let actual_interval = now - (head.next - head.interval);
+
+                // Determine the actual interval.  If this is a new word, just use zero.
+                let actual_interval =
+                    if head.next > 0.0 {
+                        now - (head.next - head.interval)
+                    } else {
+                        0.0
+                    };
                 db.update(head, self.corrected, actual_interval)?;
             }
             if self.corrected > 0 {
