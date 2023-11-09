@@ -87,7 +87,6 @@ pose	POES
 power	POUR
 pout	POUT
 loyal	HROEUL
-loaf	HROEF
 lope	HROEP
 lobe	HROEB
 lode	HROED
