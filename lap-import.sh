@@ -57,3 +57,5 @@ lap 11-rh-shun-kshun-and-x
 lap 11-rh-ment-and-let
 lap 11-rh-bl
 lap 11-test
+
+lap 12-left-hand-single-syllable-orthographic-chords
