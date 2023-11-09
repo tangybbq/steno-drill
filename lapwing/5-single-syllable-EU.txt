@@ -38,7 +38,7 @@ pip	PEUP
 pill	PEUL
 pig	PEUG
 pit	PEUT
-will	WEUL
+will	HR
 wig	WEUG
 wit	WEUT
 hip	HEUP
