@@ -51,6 +51,9 @@ lap 9-single-syllable-rh-m-and-k
 lap 9-single-syllable-rh-mp-th-and-lk
 lap 9-test
 
+lap 10-single-syllable-rh-n-j-lj
+# lap 10-...
+lap 10-single-syllable-rh-ch-sh-rch
 lap 10-test
 
 lap 11-rh-shun-kshun-and-x
