@@ -51,7 +51,6 @@ lube	HRAOUB
 lute	HRAOUT
 lose	HRAOUS
 rule	RAOUL
-route	RAOUT
 ruse	RAOUS
 rude	RAOUD
 use	AOUS
