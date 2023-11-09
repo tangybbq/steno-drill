@@ -1,5 +1,4 @@
 stock	STKOBG
-sneak	STPHAOEBG
 snake	STPHAEUBG
 sneak	STPHAEBG
 snack	STPHABG
