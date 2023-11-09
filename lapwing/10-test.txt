@@ -102,7 +102,6 @@ thrash	THRARB
 trash	TRARB
 tush	TURB
 quash	KWAURB
-quash	KWARB
 clash	KHRARB
 crash	KRARB
 creche	KRERB
