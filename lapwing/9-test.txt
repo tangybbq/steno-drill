@@ -249,7 +249,6 @@ broke	PWROEBG
 brim	PWREUPL
 brick	PWREUBG
 bike	PWAOEUBG
-beam	PWAOEPL
 beak	PWAOEBG
 boom	PWAOPL
 book	PWAOBG
