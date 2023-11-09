@@ -105,7 +105,6 @@ meet	PHAOET
 peer	PAOER
 peep	PAOEP
 peel	PAOEL
-peat	PAOET
 piece	PAOES
 peed	PAOED
 weir	WAOER
