@@ -347,7 +347,6 @@ real	RAEL
 read	RAED
 ale	AEL
 ate	AET
-deal	STKAOEL
 sneer	STPHAOER
 sneeze	STPHAOEZ
 steel	STPAOEL
