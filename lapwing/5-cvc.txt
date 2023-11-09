@@ -27,7 +27,7 @@ rub	RUB
 tore	TOR
 wore	WOR
 hog	HOG
-had	HAD
+had	H
 sup	SUP
 sag	SAG
 het	HET
