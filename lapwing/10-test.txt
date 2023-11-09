@@ -269,7 +269,6 @@ known	TPHOEPB
 nun	TPHUPB
 frown	TPROUPB
 fine	TPAOEUPB
-funny	TPAOUPB
 feign	TPAEUPB
 fawn	TPAUPB
 fan	TPAPB
