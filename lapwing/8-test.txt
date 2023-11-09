@@ -175,7 +175,6 @@ cube	KAOUB
 cute	KAOUT
 brute	PWRAOUT
 bruise	PWRAOUS
-bruise	PWRAOUZ
 boule	PWAOUL
 mure	PHAOUR
 mule	PHAOUL
