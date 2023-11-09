@@ -1,6 +1,5 @@
 snipe	STPHAOEUP
 snide	STPHAOEUD
-snipe	STPAOEUP
 suffice	STPAOEUS
 strife	STRAOEUF
 stripe	STRAOEUP

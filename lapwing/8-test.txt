@@ -478,10 +478,8 @@ eep	AOEP
 eel	AOEL
 eat	AOET
 ease	AOES
-
 snipe	STPHAOEUP
 snide	STPHAOEUD
-snipe	STPAOEUP
 suffice	STPAOEUS
 strife	STRAOEUF
 stripe	STRAOEUP
