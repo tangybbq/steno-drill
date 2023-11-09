@@ -70,7 +70,6 @@ wrest	WREFT
 waist	WAEUFT
 waste	WAEFT
 waft	WAUFT
-waft	WAFT
 wist	WEUFT
 west	WEFT
 least	HRAOEFT
