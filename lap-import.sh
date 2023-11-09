@@ -48,5 +48,12 @@ lap 8-test
 lap 9-single-syllable-rh-v
 lap 9-single-syllable-rh-st
 lap 9-single-syllable-rh-m-and-k
-lap 9-single-syllable-rh-mp-th-lk
+lap 9-single-syllable-rh-mp-th-and-lk
 lap 9-test
+
+lap 10-test
+
+lap 11-rh-shun-kshun-and-x
+lap 11-rh-ment-and-let
+lap 11-rh-bl
+lap 11-test
