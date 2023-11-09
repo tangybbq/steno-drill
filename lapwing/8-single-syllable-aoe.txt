@@ -1,6 +1,5 @@
 sneer	STPHAOER
 sneeze	STPHAOEZ
-steel	STPAOEL
 street	STRAOET
 steer	STAOER
 steep	STAOEP
