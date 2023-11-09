@@ -464,7 +464,6 @@ leer	HRAOER
 leap	HRAOEP
 league	HRAOEG
 leet	HRAOET
-lead	HRAOED
 here	HAOER
 heap	HAOEP
 heel	HAOEL
