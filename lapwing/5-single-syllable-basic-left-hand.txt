@@ -42,7 +42,6 @@ shot	SHOT
 shod	SHOD
 shell	SHEL
 shed	SHED
-sure	SHUR
 shut	SHUT
 thug	THUG
 thus	THUS
