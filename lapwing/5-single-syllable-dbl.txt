@@ -92,7 +92,6 @@ let	HRET
 less	HRES
 led	HRED
 luff	HRUF
-lure	HRUR
 lub	HRUB
 lull	HRUL
 lug	HRUG
