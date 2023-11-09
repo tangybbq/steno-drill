@@ -328,7 +328,7 @@ brain	PWRAEUPB
 brawn	PWRAUPB
 bran	PWRAPB
 brown	PWROUPB
-been	PWAOEPB
+been	PB-PB
 boon	PWAOPB
 bane	PWAEUPB
 bean	PWAEPB
