@@ -20,7 +20,7 @@ whoa	WHOE
 whole	WHOEL
 whorl	WHORL
 whop	WHOP
-when	WHEPB
+when	WH
 whose	WHAOUS
 cite	KRAOEUT
 cyst	KREUFT
