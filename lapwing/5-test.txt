@@ -70,7 +70,7 @@ dip	TKEUP
 dib	TKEUB
 dill	TKEUL
 dig	TKEUG
-did	TKEUD
+did	TK
 dizz	TKEUZ
 deaf	TKEF
 der	TKER
