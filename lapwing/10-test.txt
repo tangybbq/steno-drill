@@ -317,7 +317,7 @@ crown	KROUPB
 keen	KAOEPB
 coon	KAOPB
 cane	KAEUPB
-can	KAPB
+can	K
 coin	KOEUPB
 cone	KOEPB
 kin	KEUPB
