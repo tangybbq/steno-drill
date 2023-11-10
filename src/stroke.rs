@@ -63,7 +63,7 @@ impl Stroke {
 
             if ch == '-' {
                 if bit < MID.0 {
-                    bail!("Invalid placement of '-' in stroke");
+                    bail!("Invalid placement of '-' in stroke: {:?}", text);
                 }
 
                 while bit > MID.0 {
