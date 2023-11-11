@@ -12,7 +12,7 @@ use std::path::Path;
 use std::time::SystemTime;
 
 /// The schema version that matches this code.  May be usable in the future for automatic upgrades.
-static SCHEMA_VERSION: &str = "2022-04-14a";
+static SCHEMA_VERSION: &str = "2023-11-10a";
 
 static SCHEMA: &[&str] = &[
     "CREATE TABLE learn (
@@ -20,6 +20,7 @@ static SCHEMA: &[&str] = &[
         steno TEXT NOT NULL,
         goods INTEGER NOT NULL,
         interval REAL NOT NULL,
+        factor REAL NOT NULL,
         next REAL NOT NULL);",
     "CREATE INDEX learn_steno_idx ON learn (steno);",
     "CREATE INDEX learn_next_idx ON learn (next);",
@@ -173,7 +174,7 @@ impl Db {
 
         let mut stmt = self.conn.prepare(
             "
-            SELECT word, steno, goods, interval, next
+            SELECT word, steno, goods, interval, next, factor
             FROM learn
             WHERE next < :now
             ORDER BY interval, next
@@ -192,6 +193,7 @@ impl Db {
                     goods: row.get(2)?,
                     interval: row.get(3)?,
                     next: row.get(4)?,
+                    factor: row.get(5)?,
                 })
             },
         )? {
@@ -300,6 +302,7 @@ impl Db {
                     goods: 0,
                     interval: 3.0,
                     next: 0.0,
+                    factor: 4.0,
                 }));
             }
         }
@@ -320,7 +323,8 @@ impl Db {
                     learn.steno,
                     goods,
                     interval,
-                    next
+                    next,
+                    factor
             FROM
                     lesson LEFT JOIN learn USING (word)
             WHERE
@@ -349,6 +353,7 @@ impl Db {
                     goods: row.get(2)?,
                     interval: row.get(3)?,
                     next: row.get(4)?,
+                    factor: row.get(5)?,
                 }))})? {
             result.push(row?);
         }
@@ -365,6 +370,11 @@ impl Db {
             work.goods + 1
         } else {
             work.goods
+        };
+        let factor = if corrections == 0 {
+            work.factor
+        } else {
+            work.factor * 0.9
         };
         let interval = if corrections == 0 {
             // Don't use longer actual times if the current interval is less than a threshold.
@@ -395,7 +405,8 @@ impl Db {
 
             // If the interval chosen is less than the actualy time taken, make that the new
             // interval, after all, it was indeed learned after that much time.
-            interval * (1.5 + bias)
+            // interval * (1.5 + bias)
+            interval * (work.factor + bias)
         } else {
             (work.interval / 4.0).max(5.0)
         };
@@ -406,14 +417,15 @@ impl Db {
         tx.execute(
             "
             INSERT OR REPLACE INTO learn
-            (word, steno, goods, interval, next)
-            VALUES (:word, :steno, :goods, :interval, :next)",
+            (word, steno, goods, interval, next, factor)
+            VALUES (:word, :steno, :goods, :interval, :next, :factor)",
             named_params! {
                 ":steno": &steno,
                 ":goods": goods,
                 ":interval": interval,
                 ":next": next,
                 ":word": &work.text,
+                ":factor": factor,
             },
         )?;
         tx.commit()?;
@@ -588,6 +600,7 @@ pub struct Work {
     pub goods: usize,
     pub interval: f64,
     pub next: f64,
+    pub factor: f64,
     // pub items: Vec<WorkItem>,
 }
 
